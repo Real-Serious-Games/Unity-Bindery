@@ -65,9 +65,7 @@ namespace UnityWeld_Editor
         private BindableMember<PropertyInfo>[] FindBindableProperties()
         {
             return TypeResolver.FindBindableProperties(targetScript)
-                .Where(prop => prop.Member.PropertyType
-                    .GetCustomAttributes(typeof(BindingAttribute), false)
-                    .Any()
+                .Where(prop => prop.Member.PropertyType.HasBindingAttribute()
                 )
                 .ToArray();
         }

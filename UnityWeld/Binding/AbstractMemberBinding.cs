@@ -39,18 +39,18 @@ namespace UnityWeld.Binding
                 }
 
                 var providedViewModel = components
-                    .Select(component => component as IViewModelProvider)
+                    .Select(component => component.GetViewModelData())
                     .Where(component => component != null)
                     .FirstOrDefault(
-                        viewModelBinding => viewModelBinding.GetViewModelTypeName() == viewModelName && 
+                        viewModelData => viewModelData.TypeName == viewModelName && 
 #pragma warning disable 252,253 // Warning says unintended reference comparison, but we do want to compare references
-                        (object)viewModelBinding != this
+                        (object)viewModelData.Model != this
 #pragma warning restore 252,253
                     );
 
                 if (providedViewModel != null)
                 {
-                    return providedViewModel.GetViewModel();
+                    return providedViewModel.Model;
                 }
 
                 trans = trans.parent;

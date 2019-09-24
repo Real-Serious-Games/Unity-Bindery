@@ -10,10 +10,42 @@ using UnityWeld.Ioc;
 namespace UnityWeld.Binding.Internal
 {
     /// <summary>
+    /// ViewModel provider delegate
+    /// </summary>
+    /// <param name="component"></param>
+    /// <returns>Tuple with ViewModel name and ViewModel itself</returns>
+    public delegate ViewModelProviderData ViewModelProviderDelegate(Component component);
+
+    /// <summary>
+    /// Contains ViewModel data
+    /// </summary>
+    public class ViewModelProviderData 
+    {
+        public readonly object Model;
+        public readonly string TypeName;
+
+        public ViewModelProviderData(object model, string typeName)
+        {
+            Model = model;
+            TypeName = typeName;
+        }
+    }
+
+    /// <summary>
     /// Helper class for setting up the factory for use in the editor.
     /// </summary>
     public static class TypeResolver
     {
+        private static readonly IList<Type> BindingAttributeTypes = new List<Type>(2)
+        {
+            typeof(BindingAttribute) //this should be the only ref to default binding attribute
+        };
+
+        private static readonly IList<ViewModelProviderDelegate> ViewModelProviders = new List<ViewModelProviderDelegate>(2)
+        {
+            DefaultViewModelProvider
+        };
+
         private static Type[] typesWithBindingAttribute;
 
         /// <summary>
@@ -28,7 +60,7 @@ namespace UnityWeld.Binding.Internal
             {
                 if (typesWithBindingAttribute == null)
                 {
-                    typesWithBindingAttribute = FindTypesMarkedByAttribute(typeof(BindingAttribute));
+                    typesWithBindingAttribute = FindTypesMarkedByBindingAttribute();
                 }
 
                 return typesWithBindingAttribute;
@@ -57,6 +89,20 @@ namespace UnityWeld.Binding.Internal
         }
 
         private static Type[] typesWithWeldContainerAttribute;
+
+        /// <summary>
+        /// Impliments default view model provider
+        /// </summary>
+        private static ViewModelProviderData DefaultViewModelProvider(Component component)
+        {
+            var provider = component as IViewModelProvider;
+            if (provider == null)
+            {
+                return null;
+            }
+
+            return new ViewModelProviderData(provider.GetViewModel(), provider.GetViewModelTypeName());
+        }
 
         /// <summary>
         /// Find all types with WeldContainerAttribute. This works in the same way as
@@ -99,6 +145,21 @@ namespace UnityWeld.Binding.Internal
             }
 
             return typesFound.ToArray();
+        }
+
+        /// <summary>
+        /// Find all types marked with binding attribute
+        /// </summary>
+        /// <returns></returns>
+        private static Type[] FindTypesMarkedByBindingAttribute()
+        {
+            var result = new List<Type>();
+            foreach (var attributeType in BindingAttributeTypes)
+            {
+                result.AddRange(FindTypesMarkedByAttribute(attributeType));
+            }
+
+            return result.ToArray();
         }
 
         /// <summary>
@@ -205,21 +266,18 @@ namespace UnityWeld.Binding.Internal
                     }
 
                     // Case where a ViewModelBinding is used to bind a non-MonoBehaviour class.
-                    var viewModelBinding = component as IViewModelProvider;
-                    if (viewModelBinding != null)
+                    var viewModelData = component.GetViewModelData();
+                    if (viewModelData != null)
                     {
-                        var viewModelTypeName = viewModelBinding.GetViewModelTypeName();
                         // Ignore view model bindings that haven't been set up yet.
-                        if (string.IsNullOrEmpty(viewModelTypeName))
-                        {
+                        if (string.IsNullOrEmpty(viewModelData.TypeName))
                             continue;
-                        }
 
                         foundAtLeastOneBinding = true;
 
-                        yield return GetViewModelType(viewModelBinding.GetViewModelTypeName());
+                        yield return GetViewModelType(viewModelData.TypeName);
                     }
-                    else if (component.GetType().GetCustomAttributes(typeof(BindingAttribute), false).Any())
+                    else if (component.GetType().HasBindingAttribute())
                     {
                         // Case where we are binding to an existing MonoBehaviour.
                         foundAtLeastOneBinding = true;
@@ -246,9 +304,7 @@ namespace UnityWeld.Binding.Internal
                 .SelectMany(type => GetPublicProperties(type)
                     .Select(p => new BindableMember<PropertyInfo>(p, type))
                 )
-                .Where(p => p.Member
-                    .GetCustomAttributes(typeof(BindingAttribute), false)
-                    .Any() // Filter out properties that don't have [Binding].
+                .Where(p => p.Member.HasBindingAttribute() // Filter out properties that don't have [Binding].
                 )
                 .ToArray();
         }
@@ -295,7 +351,7 @@ namespace UnityWeld.Binding.Internal
                     .Select(m => new BindableMember<MethodInfo>(m, type))
                 )
                 .Where(m => m.Member.GetParameters().Length == 0)
-                .Where(m => m.Member.GetCustomAttributes(typeof(BindingAttribute), false).Any() 
+                .Where(m => m.Member.HasBindingAttribute() 
                     && !m.MemberName.StartsWith("get_")) // Exclude property getters, since we aren't doing anything with the return value of the bound method anyway.
                 .ToArray();
         }
@@ -309,6 +365,74 @@ namespace UnityWeld.Binding.Internal
                 .Where(p => typeof(IEnumerable).IsAssignableFrom(p.Member.PropertyType))
                 .Where(p => !typeof(string).IsAssignableFrom(p.Member.PropertyType))
                 .ToArray();
+        }
+
+        /// <summary>
+        /// Register custom binding attribute.
+        /// This will allow to mark bindable properties in external dlls without referencing UnityWeld.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        public static void RegisterCustomBindingAttribute<T>() where T : Attribute
+        {
+            var type = typeof(T);
+            if (BindingAttributeTypes.Contains(type))
+            {
+                return;
+            }
+
+            BindingAttributeTypes.Add(type);
+        }
+
+        /// <summary>
+        /// Register custom ViewModel provider.
+        /// This will allow to use custom ViewModel providers in external dlls without referencing UnityWeld.
+        /// </summary>
+        /// <param name="provider"></param>
+        public static void RegisterCustomViewModelProvider(ViewModelProviderDelegate provider)
+        {
+            if (ViewModelProviders.Contains(provider))
+            {
+                return;
+            }
+
+            ViewModelProviders.Add(provider);
+        }
+
+        /// <summary>
+        /// Check if type has binding attribute
+        /// </summary>
+        public static bool HasBindingAttribute(this MemberInfo type)
+        {
+            //for to avoid GC
+            for (var index = 0; index < BindingAttributeTypes.Count; index++)
+            {
+                if (type.GetCustomAttributes(BindingAttributeTypes[index], false).Any())
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Get ViewModel data from component
+        /// </summary>
+        public static ViewModelProviderData GetViewModelData(this Component component)
+        {
+            if (component == null)
+                return null;
+
+            //for to avoid GC
+            for (var i = 0; i < ViewModelProviders.Count; i++)
+            {
+                var data = ViewModelProviders[i](component);
+
+                if (data != null)
+                    return data;
+            }
+
+            return null;
         }
     }
 }
