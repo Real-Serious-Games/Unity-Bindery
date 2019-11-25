@@ -333,7 +333,7 @@ namespace UnityWeld_Editor
         /// <summary>
         /// Find the adapter attribute for a named adapter type.
         /// </summary>
-        protected static AdapterAttribute FindAdapterAttribute(string adapterName)
+        protected static AdapterInfo FindAdapterAttribute(string adapterName)
         {
             if (!string.IsNullOrEmpty(adapterName))
             {

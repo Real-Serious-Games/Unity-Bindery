@@ -31,6 +31,24 @@ namespace UnityWeld.Binding.Internal
         }
     }
 
+    public class AdapterInfo
+    {
+        public readonly Type InputType;
+        public readonly Type OutputType;
+        public readonly Type OptionsType;
+
+        public AdapterInfo(Type inputType, Type outputType, Type optionsType)
+        {
+            InputType = inputType;
+            OutputType = outputType;
+            OptionsType = optionsType;
+        }
+
+        public const string InputTypeName = "InputType";
+        public const string OutputTypeName = "OutputType";
+        public const string OptionsTypeName = "OptionsType";
+    }
+
     /// <summary>
     /// Helper class for setting up the factory for use in the editor.
     /// </summary>
@@ -41,6 +59,11 @@ namespace UnityWeld.Binding.Internal
             typeof(BindingAttribute) //this should be the only ref to default binding attribute
         };
 
+        private static readonly IList<Type> AdapterAttributeTypes = new List<Type>(2)
+        {
+            typeof(AdapterAttribute) //this should be the only ref to default binding attribute
+        };
+        
         private static readonly IList<ViewModelProviderDelegate> ViewModelProviders = new List<ViewModelProviderDelegate>(2)
         {
             DefaultViewModelProvider
@@ -81,7 +104,7 @@ namespace UnityWeld.Binding.Internal
             {
                 if (typesWithAdapterAttribute == null)
                 {
-                    typesWithAdapterAttribute = FindTypesMarkedByAttribute(typeof(AdapterAttribute));
+                    typesWithAdapterAttribute = FindTypesMarkedByAdapterAttribute();
                 }
 
                 return typesWithAdapterAttribute;
@@ -162,6 +185,17 @@ namespace UnityWeld.Binding.Internal
             return result.ToArray();
         }
 
+        private static Type[] FindTypesMarkedByAdapterAttribute()
+        {
+            var result = new List<Type>();
+            foreach (var attributeType in AdapterAttributeTypes)
+            {
+                result.AddRange(FindTypesMarkedByAttribute(attributeType));
+            }
+
+            return result.ToArray();
+        }
+
         /// <summary>
         /// Returns an enumerable of all known types.
         /// </summary>
@@ -221,12 +255,49 @@ namespace UnityWeld.Binding.Internal
         /// Find the [Adapter] attribute for a particular type.
         /// Returns null if there is no such attribute.
         /// </summary>
-        public static AdapterAttribute FindAdapterAttribute(Type adapterType)
+        public static AdapterInfo FindAdapterAttribute(Type adapterType)
         {
-            return adapterType
-                .GetCustomAttributes(typeof(AdapterAttribute), false)
-                .Cast<AdapterAttribute>()
-                .FirstOrDefault();
+            foreach (var attributeType in AdapterAttributeTypes)
+            {
+                var attribute = adapterType.GetCustomAttributes(attributeType, false).FirstOrDefault();
+                if (attribute == null)
+                {
+                    continue;
+                }
+
+                var outputTypeProperty = attributeType.GetProperty(AdapterInfo.OutputTypeName, BindingFlags.Instance | BindingFlags.Public);
+                if (outputTypeProperty == null)
+                {
+                    continue;
+                }
+                var outputType = outputTypeProperty.GetValue(attribute) as Type;
+                if (outputType == null)
+                {
+                    continue;
+                }
+                
+                var inputTypeProperty = adapterType.GetProperty(AdapterInfo.InputTypeName, BindingFlags.Instance | BindingFlags.Public);
+                if (inputTypeProperty == null)
+                {
+                    continue;
+                }
+                var inputType = inputTypeProperty.GetValue(attribute) as Type;
+                if (inputType == null)
+                {
+                    continue;
+                }
+                
+                var optionsTypeProperty = adapterType.GetProperty(AdapterInfo.OptionsTypeName, BindingFlags.Instance | BindingFlags.Public);
+                if (optionsTypeProperty == null)
+                {
+                    continue;
+                }
+
+                var optionsType = optionsTypeProperty.GetValue(attribute) as Type;
+                return new AdapterInfo(inputType, outputType, optionsType);
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -381,6 +452,22 @@ namespace UnityWeld.Binding.Internal
             }
 
             BindingAttributeTypes.Add(type);
+        }
+
+        /// <summary>
+        /// Register custom adapter attribute.
+        /// This will allow to mark adapters in external dlls without referencing UnityWeld.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        public static void RegisterCustomAdapterAttribute<T>() where T : Attribute
+        {
+            var type = typeof(T);
+            if (AdapterAttributeTypes.Contains(type))
+            {
+                return;
+            }
+
+            AdapterAttributeTypes.Add(type);
         }
 
         /// <summary>
