@@ -392,32 +392,17 @@ namespace UnityWeld.Binding.Internal
         {
             return Adapters.Values.Where(o => predicate(o)).Select(o => o.Id).ToArray();
         }
-
-        public static void RegisterAdapter<TIn, TOut>(AdapterInfo<TIn, TOut> adapter)
+    
+        public static void RegisterAdapter(IAdapterInfo adapter)
         {
             if (adapter == null)
             {
-                throw new ArgumentNullException("adapter");
+                throw new ArgumentNullException(nameof(adapter));
             }
 
             if (Adapters.ContainsKey(adapter.Id))
             {
-                throw new Exception(string.Format("Adapter with id \"{0}\"", adapter.Id));
-            }
-
-            Adapters.Add(adapter.Id, adapter);
-        }
-        
-        public static void RegisterAdapter<TIn, TOut, TOptions>(AdapterInfo<TIn, TOut, TOptions> adapter)
-        {
-            if (adapter == null)
-            {
-                throw new ArgumentNullException("adapter");
-            }
-
-            if (Adapters.ContainsKey(adapter.Id))
-            {
-                throw new Exception(string.Format("Adapter with id \"{0}\"", adapter.Id));
+                throw new Exception($"Adapter with id \"{adapter.Id}\"");
             }
 
             Adapters.Add(adapter.Id, adapter);
