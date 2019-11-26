@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using UnityEngine;
 using UnityWeld.Binding.Exceptions;
@@ -63,40 +64,15 @@ namespace UnityWeld.Binding
         }
 
         /// <summary>
-        /// Find the type of the adapter with the specified name and create it.
-        /// </summary>
-        protected static IAdapter CreateAdapter(string adapterTypeName)
-        {
-            if (string.IsNullOrEmpty(adapterTypeName))
-            {
-                return null;
-            }
-
-            var adapterType = TypeResolver.FindAdapterType(adapterTypeName);
-            if (adapterType == null)
-            {
-                throw new NoSuchAdapterException(adapterTypeName);
-            }
-
-            if (!typeof(IAdapter).IsAssignableFrom(adapterType))
-            {
-                throw new InvalidAdapterException(string.Format("Type '{0}' does not implement IAdapter and cannot be used as an adapter.", adapterTypeName));
-            }
-
-            return AdapterResolver.CreateAdapter(adapterType);
-        }
-
-        /// <summary>
         /// Make a property end point for a property on the view model.
         /// </summary>
-        protected PropertyEndPoint MakeViewModelEndPoint(string viewModelPropertyName, string adapterTypeName, AdapterOptions adapterOptions)
+        protected PropertyEndPoint MakeViewModelEndPoint(string viewModelPropertyName, string adapterId, AdapterOptions adapterOptions)
         {
             string propertyName;
             object viewModel;
             ParseViewModelEndPointReference(viewModelPropertyName, out propertyName, out viewModel);
 
-            var adapter = CreateAdapter(adapterTypeName);
-
+            var adapter = TypeResolver.GetAdapter(adapterId);
             return new PropertyEndPoint(viewModel, propertyName, adapter, adapterOptions, "view-model", this);
         }
 

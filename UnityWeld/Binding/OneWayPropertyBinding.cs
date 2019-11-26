@@ -17,14 +17,14 @@ namespace UnityWeld.Binding
         /// Type of the adapter we're using to adapt between the view model property 
         /// and UI property.
         /// </summary>
-        public string ViewAdapterTypeName
+        public string ViewAdapterId
         {
-            get { return viewAdapterTypeName; }
-            set { viewAdapterTypeName = value; }
+            get { return viewAdapterId; }
+            set { viewAdapterId = value; }
         }
 
-        [SerializeField]
-        private string viewAdapterTypeName;
+        [FormerlySerializedAs("viewAdapterTypeName")] [SerializeField]
+        private string viewAdapterId;
 
         /// <summary>
         /// Options for adapting from the view model to the UI property.
@@ -83,7 +83,7 @@ namespace UnityWeld.Binding
                 new PropertyEndPoint(
                     view,
                     propertyName,
-                    CreateAdapter(viewAdapterTypeName),
+                    TypeResolver.GetAdapter(ViewAdapterId),
                     viewAdapterOptions,
                     "view",
                     this

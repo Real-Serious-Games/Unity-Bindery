@@ -4,8 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
+using UnityWeld.Binding.Adapters;
 using UnityWeld.Binding.Exceptions;
-using UnityWeld.Ioc;
 
 namespace UnityWeld.Binding.Internal
 {
@@ -31,24 +31,6 @@ namespace UnityWeld.Binding.Internal
         }
     }
 
-    public class AdapterInfo
-    {
-        public readonly Type InputType;
-        public readonly Type OutputType;
-        public readonly Type OptionsType;
-
-        public AdapterInfo(Type inputType, Type outputType, Type optionsType)
-        {
-            InputType = inputType;
-            OutputType = outputType;
-            OptionsType = optionsType;
-        }
-
-        public const string InputTypeName = "InputType";
-        public const string OutputTypeName = "OutputType";
-        public const string OptionsTypeName = "OptionsType";
-    }
-
     /// <summary>
     /// Helper class for setting up the factory for use in the editor.
     /// </summary>
@@ -59,11 +41,6 @@ namespace UnityWeld.Binding.Internal
             typeof(BindingAttribute) //this should be the only ref to default binding attribute
         };
 
-        private static readonly IList<Type> AdapterAttributeTypes = new List<Type>(2)
-        {
-            typeof(AdapterAttribute) //this should be the only ref to default binding attribute
-        };
-        
         private static readonly IList<ViewModelProviderDelegate> ViewModelProviders = new List<ViewModelProviderDelegate>(2)
         {
             DefaultViewModelProvider
@@ -90,29 +67,6 @@ namespace UnityWeld.Binding.Internal
             }
         }
 
-        private static Type[] typesWithAdapterAttribute;
-
-        /// <summary>
-        /// Find all types with the binding attribute. This uses reflection to find all
-        /// types the first time it runs and caches it for every other time. We can
-        /// safely cache this data because it will only change if the loaded assemblies
-        /// change, in which case everthing in managed memory will be throw out anyway.
-        /// </summary>
-        public static IEnumerable<Type> TypesWithAdapterAttribute
-        {
-            get
-            {
-                if (typesWithAdapterAttribute == null)
-                {
-                    typesWithAdapterAttribute = FindTypesMarkedByAdapterAttribute();
-                }
-
-                return typesWithAdapterAttribute;
-            }
-        }
-
-        private static Type[] typesWithWeldContainerAttribute;
-
         /// <summary>
         /// Impliments default view model provider
         /// </summary>
@@ -125,24 +79,6 @@ namespace UnityWeld.Binding.Internal
             }
 
             return new ViewModelProviderData(provider.GetViewModel(), provider.GetViewModelTypeName());
-        }
-
-        /// <summary>
-        /// Find all types with WeldContainerAttribute. This works in the same way as
-        /// TypesWithAdapterAttribute and TypesWithBindingAttribute in that it finds it
-        /// using reflection the first time and then caches for performance.
-        /// </summary>
-        public static IEnumerable<Type> TypesWithWeldContainerAttribute
-        {
-            get
-            {
-                if (typesWithWeldContainerAttribute == null)
-                {
-                    typesWithWeldContainerAttribute = FindTypesMarkedByAttribute(typeof(WeldContainerAttribute));
-                }
-
-                return typesWithWeldContainerAttribute;
-            }
         }
 
         /// <summary>
@@ -185,17 +121,6 @@ namespace UnityWeld.Binding.Internal
             return result.ToArray();
         }
 
-        private static Type[] FindTypesMarkedByAdapterAttribute()
-        {
-            var result = new List<Type>();
-            foreach (var attributeType in AdapterAttributeTypes)
-            {
-                result.AddRange(FindTypesMarkedByAttribute(attributeType));
-            }
-
-            return result.ToArray();
-        }
-
         /// <summary>
         /// Returns an enumerable of all known types.
         /// </summary>
@@ -227,77 +152,6 @@ namespace UnityWeld.Binding.Internal
                     yield return type;
                 }
             }
-        }
-
-        /// <summary>
-        /// Find a particular type by its short name.
-        /// </summary>
-        public static Type FindAdapterType(string typeName)
-        {
-            var matchingTypes = TypesWithAdapterAttribute
-                .Where(type => type.ToString() == typeName)
-                .ToList();
-
-            if (!matchingTypes.Any())
-            {
-                return null;
-            }
-
-            if (matchingTypes.Skip(1).Any())
-            {
-                throw new AmbiguousTypeException("Multiple types match: " + typeName);
-            }
-
-            return matchingTypes.First();
-        }
-
-        /// <summary>
-        /// Find the [Adapter] attribute for a particular type.
-        /// Returns null if there is no such attribute.
-        /// </summary>
-        public static AdapterInfo FindAdapterAttribute(Type adapterType)
-        {
-            foreach (var attributeType in AdapterAttributeTypes)
-            {
-                var attribute = adapterType.GetCustomAttributes(attributeType, false).FirstOrDefault();
-                if (attribute == null)
-                {
-                    continue;
-                }
-
-                var outputTypeProperty = attributeType.GetProperty(AdapterInfo.OutputTypeName, BindingFlags.Instance | BindingFlags.Public);
-                if (outputTypeProperty == null)
-                {
-                    continue;
-                }
-                var outputType = outputTypeProperty.GetValue(attribute) as Type;
-                if (outputType == null)
-                {
-                    continue;
-                }
-                
-                var inputTypeProperty = adapterType.GetProperty(AdapterInfo.InputTypeName, BindingFlags.Instance | BindingFlags.Public);
-                if (inputTypeProperty == null)
-                {
-                    continue;
-                }
-                var inputType = inputTypeProperty.GetValue(attribute) as Type;
-                if (inputType == null)
-                {
-                    continue;
-                }
-                
-                var optionsTypeProperty = adapterType.GetProperty(AdapterInfo.OptionsTypeName, BindingFlags.Instance | BindingFlags.Public);
-                if (optionsTypeProperty == null)
-                {
-                    continue;
-                }
-
-                var optionsType = optionsTypeProperty.GetValue(attribute) as Type;
-                return new AdapterInfo(inputType, outputType, optionsType);
-            }
-
-            return null;
         }
 
         /// <summary>
@@ -455,22 +309,6 @@ namespace UnityWeld.Binding.Internal
         }
 
         /// <summary>
-        /// Register custom adapter attribute.
-        /// This will allow to mark adapters in external dlls without referencing UnityWeld.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        public static void RegisterCustomAdapterAttribute<T>() where T : Attribute
-        {
-            var type = typeof(T);
-            if (AdapterAttributeTypes.Contains(type))
-            {
-                return;
-            }
-
-            AdapterAttributeTypes.Add(type);
-        }
-
-        /// <summary>
         /// Register custom ViewModel provider.
         /// This will allow to use custom ViewModel providers in external dlls without referencing UnityWeld.
         /// </summary>
@@ -520,6 +358,75 @@ namespace UnityWeld.Binding.Internal
             }
 
             return null;
+        }
+
+        private static readonly Dictionary<string, IAdapterInfo> Adapters;
+
+        public static IAdapterInfo GetAdapter(string adapterId)
+        {
+            if (string.IsNullOrEmpty(adapterId))
+            {
+                throw new Exception("Adapter id is empty");
+            }
+
+            if (!Adapters.TryGetValue(adapterId, out var adapter))
+            {
+                throw new Exception($"Adapter {adapterId} was not found!");
+            }
+
+            return adapter;
+        }
+
+        public static bool TryGetAdapter(string adapterId, out IAdapterInfo adapterInfo)
+        {
+            if (string.IsNullOrEmpty(adapterId))
+            {
+                adapterInfo = null;
+                return false;
+            }
+
+            return Adapters.TryGetValue(adapterId, out adapterInfo);
+        }
+
+        public static string[] GetAdapterIds(Predicate<IAdapterInfo> predicate)
+        {
+            return Adapters.Values.Where(o => predicate(o)).Select(o => o.Id).ToArray();
+        }
+
+        public static void RegisterAdapter<TIn, TOut>(AdapterInfo<TIn, TOut> adapter)
+        {
+            if (adapter == null)
+            {
+                throw new ArgumentNullException("adapter");
+            }
+
+            if (Adapters.ContainsKey(adapter.Id))
+            {
+                throw new Exception(string.Format("Adapter with id \"{0}\"", adapter.Id));
+            }
+
+            Adapters.Add(adapter.Id, adapter);
+        }
+        
+        public static void RegisterAdapter<TIn, TOut, TOptions>(AdapterInfo<TIn, TOut, TOptions> adapter)
+        {
+            if (adapter == null)
+            {
+                throw new ArgumentNullException("adapter");
+            }
+
+            if (Adapters.ContainsKey(adapter.Id))
+            {
+                throw new Exception(string.Format("Adapter with id \"{0}\"", adapter.Id));
+            }
+
+            Adapters.Add(adapter.Id, adapter);
+        }
+
+        static TypeResolver()
+        {
+            Adapters = new Dictionary<string, IAdapterInfo>();
+            BaseAdapters.RegisterBaseAdapters();
         }
     }
 }

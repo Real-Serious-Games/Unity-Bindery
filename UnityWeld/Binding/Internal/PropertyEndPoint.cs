@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using UnityEngine;
+using UnityWeld.Binding.Adapters;
 
 namespace UnityWeld.Binding.Internal
 {
@@ -27,7 +28,7 @@ namespace UnityWeld.Binding.Internal
         /// <summary>
         /// Adapter for converting values that are set on the property.
         /// </summary>
-        private readonly IAdapter adapter;
+        private readonly IAdapterInfo adapter;
 
         /// <summary>
         /// Options for using the adapter to convert values.
@@ -50,7 +51,7 @@ namespace UnityWeld.Binding.Internal
         public PropertyEndPoint(
             object propertyOwner, 
             string propertyName, 
-            IAdapter adapter, 
+            IAdapterInfo adapter, 
             AdapterOptions options, 
             string endPointType, 
             Component context)

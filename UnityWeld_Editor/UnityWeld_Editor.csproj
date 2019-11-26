@@ -10,7 +10,7 @@
         <RepositoryUrl>https://github.com/Real-Serious-Games/Unity-Weld</RepositoryUrl>
         <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
         <SignAssembly>false</SignAssembly>
-        <LangVersion>4</LangVersion>
+        <LangVersion>latest</LangVersion>
         <DebugType>full</DebugType>
         <DebugSymbols>true</DebugSymbols>
     </PropertyGroup>

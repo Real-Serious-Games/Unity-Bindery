@@ -53,14 +53,14 @@ namespace UnityWeld.Binding
         /// Name of the type of the adapter we're using to convert values from the 
         /// view model to the view. Can be empty for no adapter.
         /// </summary>
-        public string ViewAdapterTypeName
+        public string ViewAdapterId
         {
-            get { return viewAdapterTypeName; }
-            set { viewAdapterTypeName = value; }
+            get { return viewAdapterId; }
+            set { viewAdapterId = value; }
         }
 
-        [SerializeField]
-        private string viewAdapterTypeName;
+        [FormerlySerializedAs("viewAdapterTypeName")] [SerializeField]
+        private string viewAdapterId;
 
         /// <summary>
         /// Options for the adapter from the view model to the view.
@@ -165,7 +165,7 @@ namespace UnityWeld.Binding
                 new PropertyEndPoint(
                     view,
                     propertyName,
-                    CreateAdapter(viewAdapterTypeName),
+                    TypeResolver.GetAdapter(viewAdapterId),
                     viewAdapterOptions,
                     "view",
                     this
