@@ -366,7 +366,7 @@ namespace UnityWeld.Binding.Internal
         {
             if (string.IsNullOrEmpty(adapterId))
             {
-                throw new Exception("Adapter id is empty");
+                return null;
             }
 
             if (!Adapters.TryGetValue(adapterId, out var adapter))

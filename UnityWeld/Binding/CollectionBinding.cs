@@ -142,10 +142,7 @@ namespace UnityWeld.Binding
             var viewModelValue = viewModelCollectionProperty.GetValue(viewModel, null);
             if (viewModelValue == null)
             {
-                throw new PropertyNullException(
-                    "Cannot bind to null property in view: " 
-                    + ViewModelPropertyName
-                );
+                return;
             }
 
             viewModelCollectionValue = viewModelValue as IEnumerable;
