@@ -40,7 +40,7 @@ namespace UnityWeld.Binding
         /// <summary>
         /// Property on the view to update when value changes.
         /// </summary>
-        public string ViewPropertName
+        public string ViewPropertyName
         {
             get { return viewPropertyName; }
             set { viewPropertyName = value; }

@@ -96,15 +96,15 @@ namespace UnityWeld_Editor
                     .OrderBy(prop => prop.ViewModelTypeName)
                     .ThenBy(prop => prop.MemberName)
                     .ToArray(),
-                updatedValue => targetScript.ViewPropertName = updatedValue,
-                targetScript.ViewPropertName,
+                updatedValue => targetScript.ViewPropertyName = updatedValue,
+                targetScript.ViewPropertyName,
                 out viewPropertyType
             );
 
             // Don't let the user set other options until they've set the event and view property.
             var guiPreviouslyEnabled = GUI.enabled;
             if (string.IsNullOrEmpty(targetScript.ViewEventName) 
-                || string.IsNullOrEmpty(targetScript.ViewPropertName))
+                || string.IsNullOrEmpty(targetScript.ViewPropertyName))
             {
                 GUI.enabled = false;
             }
