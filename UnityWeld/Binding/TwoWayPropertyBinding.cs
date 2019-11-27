@@ -78,14 +78,14 @@ namespace UnityWeld.Binding
         /// Name of the type of the adapter we're using to conver values from the
         /// view back to the view model. Can be empty for no adapter.
         /// </summary>
-        public string ViewModelAdapterTypeName
+        public string ViewModelAdapterId
         {
-            get { return viewModelAdapterTypeName; }
-            set { viewModelAdapterTypeName = value; }
+            get { return viewModelAdapterId; }
+            set { viewModelAdapterId = value; }
         }
 
-        [SerializeField]
-        private string viewModelAdapterTypeName;
+        [FormerlySerializedAs("viewModelAdapterTypeName")] [SerializeField]
+        private string viewModelAdapterId;
 
         /// <summary>
         /// Options for the adapter from the view to the view model.
@@ -153,7 +153,7 @@ namespace UnityWeld.Binding
 
             var viewModelEndPoint = MakeViewModelEndPoint(
                 viewModelPropertyName, 
-                viewModelAdapterTypeName, 
+                viewModelAdapterId, 
                 viewModelAdapterOptions
             );
 

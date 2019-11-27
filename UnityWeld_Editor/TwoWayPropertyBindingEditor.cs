@@ -42,7 +42,7 @@ namespace UnityWeld_Editor
                 out adapterType
             ));
             viewModelAdapterOptionsFade = new AnimBool(ShouldShowAdapterOptions(
-                targetScript.ViewModelAdapterTypeName, 
+                targetScript.ViewModelAdapterId, 
                 out adapterType
             ));
             exceptionAdapterOptionsFade = new AnimBool(ShouldShowAdapterOptions(
@@ -192,18 +192,18 @@ namespace UnityWeld_Editor
                     "Adapter that converts from the view back to the view-model"
                 ),
                 viewModelAdapterTypeNames,
-                targetScript.ViewModelAdapterTypeName,
+                targetScript.ViewModelAdapterId,
                 newValue =>
                 {
-                    if (newValue != targetScript.ViewModelAdapterTypeName)
+                    if (newValue != targetScript.ViewModelAdapterId)
                     {
                         Undo.RecordObject(targetScript, "Set view-model adapter options");
                         targetScript.ViewModelAdapterOptions = null;
                     }
 
                     UpdateProperty(
-                        updatedValue => targetScript.ViewModelAdapterTypeName = updatedValue,
-                        targetScript.ViewModelAdapterTypeName,
+                        updatedValue => targetScript.ViewModelAdapterId = updatedValue,
+                        targetScript.ViewModelAdapterId,
                         newValue,
                         "Set view-model adapter"
                     );
@@ -216,7 +216,7 @@ namespace UnityWeld_Editor
 
             Type viewModelAdapterType;
             viewModelAdapterOptionsFade.target = ShouldShowAdapterOptions(
-                targetScript.ViewModelAdapterTypeName, 
+                targetScript.ViewModelAdapterId, 
                 out viewModelAdapterType
             );
             ShowAdapterOptionsMenu(
