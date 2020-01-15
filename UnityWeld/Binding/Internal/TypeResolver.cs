@@ -402,7 +402,7 @@ namespace UnityWeld.Binding.Internal
 
             if (Adapters.ContainsKey(adapter.Id))
             {
-                throw new Exception($"Adapter with id \"{adapter.Id}\"");
+                return;
             }
 
             Adapters.Add(adapter.Id, adapter);
