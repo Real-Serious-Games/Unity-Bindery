@@ -1,4 +1,3 @@
-using System;
 using System.Linq;
 using UnityEngine;
 using UnityWeld.Binding.Exceptions;
@@ -12,14 +11,25 @@ namespace UnityWeld.Binding
     [HelpURL("https://github.com/Real-Serious-Games/Unity-Weld")]
     public abstract class AbstractMemberBinding : MonoBehaviour, IMemberBinding
     {
+        private bool _isInitCalled;
+
+        [SerializeField]
+        private bool _isAutoConnection;
+
         /// <summary>
         /// Initialise this binding. Used when we first start the scene.
         /// Detaches any attached view models, finds available view models afresh and then connects the binding.
         /// </summary>
         public virtual void Init()
         {
-            Disconnect();
+            _isInitCalled = true;
 
+            if (!gameObject.activeInHierarchy)
+            {
+                return;
+            }
+
+            Disconnect();
             Connect();
         }
 
@@ -153,6 +163,11 @@ namespace UnityWeld.Binding
         /// </summary>
         protected void Awake()
         {
+            if (!_isAutoConnection && !_isInitCalled)
+            {
+                return;
+            }
+
             Init();
         }
 
@@ -161,6 +176,11 @@ namespace UnityWeld.Binding
         /// </summary>
         public void OnDestroy()
         {
+            if (!_isAutoConnection)
+            {
+                return;
+            }
+
             Disconnect();
         }
     }
