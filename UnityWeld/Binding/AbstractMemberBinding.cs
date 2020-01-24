@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityWeld.Binding.Exceptions;
@@ -13,8 +14,7 @@ namespace UnityWeld.Binding
     {
         private bool _isInitCalled;
 
-        [SerializeField]
-        private bool _isAutoConnection;
+        [SerializeField] private bool _isAutoConnection;
 
         /// <summary>
         /// Initialise this binding. Used when we first start the scene.
@@ -41,21 +41,22 @@ namespace UnityWeld.Binding
             var trans = transform;
             while (trans != null)
             {
-                var components = trans.GetComponents<MonoBehaviour>();
-                var monoBehaviourViewModel = components
+                var buffer = Buffer.Behaviours;
+                trans.GetComponents<MonoBehaviour>(buffer);
+                var monoBehaviourViewModel = buffer
                     .FirstOrDefault(component => component.GetType().ToString() == viewModelName);
                 if (monoBehaviourViewModel != null)
                 {
                     return monoBehaviourViewModel;
                 }
 
-                var providedViewModel = components
+                var providedViewModel = buffer
                     .Select(component => component.GetViewModelData())
                     .Where(component => component != null)
                     .FirstOrDefault(
-                        viewModelData => viewModelData.TypeName == viewModelName && 
+                        viewModelData => viewModelData.TypeName == viewModelName &&
 #pragma warning disable 252,253 // Warning says unintended reference comparison, but we do want to compare references
-                        (object)viewModelData.Model != this
+                                         (object) viewModelData.Model != this
 #pragma warning restore 252,253
                     );
 
@@ -67,7 +68,8 @@ namespace UnityWeld.Binding
                 trans = trans.parent;
             }
 
-            throw new ViewModelNotFoundException(string.Format("Tried to get view model {0} but it could not be found on "
+            throw new ViewModelNotFoundException(string.Format(
+                "Tried to get view model {0} but it could not be found on "
                 + "object {1}. Check that a ViewModelBinding for that view model exists further up in "
                 + "the scene hierarchy. ", viewModelName, gameObject.name)
             );
@@ -76,7 +78,8 @@ namespace UnityWeld.Binding
         /// <summary>
         /// Make a property end point for a property on the view model.
         /// </summary>
-        protected PropertyEndPoint MakeViewModelEndPoint(string viewModelPropertyName, string adapterId, AdapterOptions adapterOptions)
+        protected PropertyEndPoint MakeViewModelEndPoint(string viewModelPropertyName, string adapterId,
+            AdapterOptions adapterOptions)
         {
             string propertyName;
             object viewModel;
@@ -89,7 +92,8 @@ namespace UnityWeld.Binding
         /// <summary>
         /// Parse an end-point reference including a type name and member name separated by a period.
         /// </summary>
-        protected static void ParseEndPointReference(string endPointReference, out string memberName, out string typeName)
+        protected static void ParseEndPointReference(string endPointReference, out string memberName,
+            out string typeName)
         {
             var lastPeriodIndex = endPointReference.LastIndexOf('.');
             if (lastPeriodIndex == -1)
@@ -108,6 +112,7 @@ namespace UnityWeld.Binding
             {
                 typeName = typeName.Substring(typeName.LastIndexOf('.') + 1);
             }
+
             if (typeName.Length == 0 || memberName.Length == 0)
             {
                 throw new InvalidEndPointException(
@@ -120,7 +125,8 @@ namespace UnityWeld.Binding
         /// <summary>
         /// Parse an end-point reference and search up the hierarchy for the named view-model.
         /// </summary>
-        protected void ParseViewModelEndPointReference(string endPointReference, out string memberName, out object viewModel)
+        protected void ParseViewModelEndPointReference(string endPointReference, out string memberName,
+            out object viewModel)
         {
             string viewModelName;
             ParseEndPointReference(endPointReference, out memberName, out viewModelName);
@@ -143,7 +149,8 @@ namespace UnityWeld.Binding
             view = GetComponent(boundComponentType);
             if (view == null)
             {
-                throw new ComponentNotFoundException("Failed to find component on current game object: " + boundComponentType);
+                throw new ComponentNotFoundException("Failed to find component on current game object: " +
+                                                     boundComponentType);
             }
         }
 

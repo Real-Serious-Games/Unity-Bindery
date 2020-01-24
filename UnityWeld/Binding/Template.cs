@@ -61,7 +61,9 @@ namespace UnityWeld.Binding
             // Set the bound view to the new view model.
             this.viewModel = viewModel;
 
-            foreach (var binding in GetComponentsInChildren<AbstractMemberBinding>())
+            var buffer = Buffer.AbstractMemberBindings;
+            GetComponentsInChildren<AbstractMemberBinding>(buffer);
+            foreach (var binding in buffer)
             {
                 binding.Init();
             }

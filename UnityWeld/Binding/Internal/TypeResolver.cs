@@ -181,8 +181,9 @@ namespace UnityWeld.Binding.Internal
             var trans = memberBinding.transform;
             while (trans != null)
             {
-                var components = trans.GetComponents<MonoBehaviour>();
-                foreach (var component in components)
+                var buffer = Buffer.Behaviours;
+                trans.GetComponents<MonoBehaviour>(buffer);
+                foreach (var component in buffer)
                 {
                     // Can't bind to self or null
                     if (component == null || component == memberBinding)
@@ -346,7 +347,9 @@ namespace UnityWeld.Binding.Internal
         public static ViewModelProviderData GetViewModelData(this Component component)
         {
             if (component == null)
+            {
                 return null;
+            }
 
             //for to avoid GC
             for (var i = 0; i < ViewModelProviders.Count; i++)
@@ -354,7 +357,9 @@ namespace UnityWeld.Binding.Internal
                 var data = ViewModelProviders[i](component);
 
                 if (data != null)
+                {
                     return data;
+                }
             }
 
             return null;

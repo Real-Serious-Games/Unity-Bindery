@@ -114,8 +114,11 @@ namespace UnityWeld.Binding
         {
             UpdateViewModel();
 
+            var buffer = Buffer.AbstractMemberBindings;
+            GetComponentsInChildren<AbstractMemberBinding>(buffer);
+
             // Rebind all children.
-            foreach (var memberBinding in GetComponentsInChildren<AbstractMemberBinding>())
+            foreach (var memberBinding in buffer)
             {
                 if (memberBinding == this)
                 {

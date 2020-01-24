@@ -145,7 +145,10 @@ namespace UnityWeld.Binding.Internal
         {
             Assert.IsNotNull(gameObject);
 
-            return gameObject.GetComponents(typeof(Component))
+            var buffer = Buffer.Components;
+            gameObject.GetComponents(buffer);
+
+            return buffer
                 .Where(component => component != null)
                 .SelectMany(GetBindableEvents)
                 .ToArray();

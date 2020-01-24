@@ -72,15 +72,16 @@ namespace UnityWeld.Binding
         {
             availableTemplates = new Dictionary<Type, Template>();
 
-            var templatesInScene = templatesRoot.GetComponentsInChildren<Template>(true);
-            foreach (var template in templatesInScene)
+            var buffer = Buffer.Templates;
+            templatesRoot.GetComponentsInChildren<Template>(true, buffer);
+            foreach (var template in buffer)
             {
                 template.gameObject.SetActive(false);
                 var typeName = template.GetViewModelTypeName();
                 var type = TypeResolver.TypesWithBindingAttribute.FirstOrDefault(t => t.ToString() == typeName);
                 if (type == null)
                 {
-                    Debug.LogError(string.Format("Template object {0} references type {1}, but no matching type with a [Binding] attribute could be found.", template.name, typeName), template);
+                    Debug.LogError($"Template object {template.name} references type {typeName}, but no matching type with a [Binding] attribute could be found.", template);
                     continue;
                 }
                 
@@ -118,25 +119,79 @@ namespace UnityWeld.Binding
         /// </summary>
         private Template FindTemplateForType(Type templateType)
         {
-            var possibleMatches = FindTypesMatchingTemplate(templateType)
-                .OrderBy(m => m.Key)
-                .ToList();
+            var possibleMatches = FindTypesMatchingTemplate(templateType);
+                    // .OrderBy(m => m.Key)
+                    // .ToList();
 
-            if (!possibleMatches.Any())
+            if (possibleMatches.Count == 0)
             {
                 throw new TemplateNotFoundException("Could not find any template matching type " + templateType);
             }
 
-            var selectedType = possibleMatches.First();
-
-            if (possibleMatches.Skip(1).Any(m => m.Key == selectedType.Key))
+            if (possibleMatches.Count > 1)
             {
                 throw new AmbiguousTypeException("Multiple templates were found that match type " + templateType
                     + ". This can be caused by providing multiple templates that match types " + templateType
-                    + " inherits from at the same level. Remove one or provide a template that more specifically matches the type.");
+                    + " inherits from the same level. Remove one or provide a template that more specifically matches the type.");
             }
 
-            return AvailableTemplates[selectedType.Value];
+            return AvailableTemplates[possibleMatches[0]];
+        }
+
+        private static List<Type> GetTypeWithInterfaces(Type originalType)
+        {
+            var interfaces = originalType.GetInterfaces();
+            var result = new List<Type>(interfaces.Length + 1)
+            {
+                originalType
+            };
+            result.AddRange(interfaces);
+            return result;
+        }
+
+        private static List<Type> GetBaseTypeWithInterfaces(Type originalType)
+        {
+            var interfaces = originalType.GetInterfaces();
+            var result = new List<Type>(interfaces.Length + 1);
+            if (originalType.BaseType != null)
+            {
+                result.Add(originalType.BaseType);
+            }
+            result.AddRange(interfaces);
+            return result;
+        }
+
+        private List<Type> FindTypesMatchingTemplate(Type originalType)
+        {
+            var result = new List<Type>();
+            var levelToCheck = GetTypeWithInterfaces(originalType);
+
+            while (levelToCheck.Count > 0)
+            {
+                var validTypesList = new List<Type>();
+                var newLevelToCheck = new List<Type>();
+                foreach (var type in levelToCheck)
+                {
+                    newLevelToCheck.AddRange(GetBaseTypeWithInterfaces(type));
+
+                    if (AvailableTemplates.ContainsKey(type))
+                    {
+                        validTypesList.Add(type);
+                    }
+                }
+
+                if (validTypesList.Count > 0)
+                {
+                    return validTypesList;
+                }
+
+                if (newLevelToCheck.Count > 0)
+                {
+                    levelToCheck = newLevelToCheck;
+                }
+            }
+
+            return result;
         }
 
         /// <summary>
@@ -144,30 +199,30 @@ namespace UnityWeld.Binding
         /// from for a type that matches a template. Also store how many steps away from 
         /// the specified template the found template was.
         /// </summary>
-        private IEnumerable<KeyValuePair<int, Type>> FindTypesMatchingTemplate(Type t, int index = 0)
-        {
-            var baseType = t.BaseType;
-            if (baseType != null && !baseType.IsInterface)
-            {
-                foreach (var type in FindTypesMatchingTemplate(baseType, index + 1))
-                {
-                    yield return type;
-                }
-            }
-
-            foreach (var interfaceType in t.GetInterfaces())
-            {
-                foreach (var type in FindTypesMatchingTemplate(interfaceType, index + 1))
-                {
-                    yield return type;
-                }
-            }
-
-            if (AvailableTemplates.Keys.Contains(t))
-            {
-                yield return new KeyValuePair<int, Type>(index, t);
-            }
-        }
+        // private IEnumerable<KeyValuePair<int, Type>> FindTypesMatchingTemplate(Type t, int index = 0)
+        // {
+        //     var baseType = t.BaseType;
+        //     if (baseType != null && !baseType.IsInterface)
+        //     {
+        //         foreach (var type in FindTypesMatchingTemplate(baseType, index + 1))
+        //         {
+        //             yield return type;
+        //         }
+        //     }
+        //
+        //     foreach (var interfaceType in t.GetInterfaces())
+        //     {
+        //         foreach (var type in FindTypesMatchingTemplate(interfaceType, index + 1))
+        //         {
+        //             yield return type;
+        //         }
+        //     }
+        //
+        //     if (AvailableTemplates.Keys.Contains(t))
+        //     {
+        //         yield return new KeyValuePair<int, Type>(index, t);
+        //     }
+        // }
 
         /// <summary>
         /// Destroys the instantiated template associated with the provided object.

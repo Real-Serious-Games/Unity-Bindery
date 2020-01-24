@@ -28,8 +28,9 @@ namespace UnityWeld.Binding.Internal
         {
             Assert.IsNotNull(gameObject);
 
-            return gameObject.GetComponents<Component>()
-                .Where(component => component != null)
+            var buffer = Buffer.Components;
+            gameObject.GetComponents<Component>(buffer);
+            return buffer
                 .SelectMany(component =>
                 {
                     var type = component.GetType();
