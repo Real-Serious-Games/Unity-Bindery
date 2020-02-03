@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityWeld.Binding.Exceptions;
@@ -14,7 +13,8 @@ namespace UnityWeld.Binding
     {
         private bool _isInitCalled;
 
-        [SerializeField] private bool _isAutoConnection;
+        [SerializeField] 
+        private bool _isAutoConnection = true;
 
         /// <summary>
         /// Initialise this binding. Used when we first start the scene.
