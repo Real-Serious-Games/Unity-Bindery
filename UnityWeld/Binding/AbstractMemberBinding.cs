@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using UnityEngine;
 using UnityWeld.Binding.Exceptions;
@@ -26,7 +27,7 @@ namespace UnityWeld.Binding
 
             if (!gameObject.activeInHierarchy)
             {
-                return;
+                return; //wait for enabling
             }
 
             Disconnect();
@@ -168,7 +169,7 @@ namespace UnityWeld.Binding
         /// Standard MonoBehaviour awake message, do not call this explicitly.
         /// Initialises the binding.
         /// </summary>
-        protected void Awake()
+        protected void OnEnable()
         {
             if (!_isAutoConnection && !_isInitCalled)
             {
@@ -181,13 +182,14 @@ namespace UnityWeld.Binding
         /// <summary>
         /// Clean up when the game object is destroyed.
         /// </summary>
-        public void OnDestroy()
+        public virtual void OnDestroy()
         {
-            if (!_isAutoConnection)
-            {
-                return;
-            }
+            Disconnect();
+        }
 
+        public void ResetBinding()
+        {
+            _isInitCalled = false;
             Disconnect();
         }
     }

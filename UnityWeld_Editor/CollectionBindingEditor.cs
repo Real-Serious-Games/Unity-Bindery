@@ -8,52 +8,54 @@ namespace UnityWeld_Editor
     [CustomEditor(typeof(CollectionBinding))]
     class CollectionBindingEditor : BaseBindingEditor
     {
-        private CollectionBinding targetScript;
+        private CollectionBinding _targetScript;
+        private SerializedProperty _templateInitialPoolCountProperty;
+        private SerializedProperty _itemsContainerProperty;
+        
+        private bool _viewModelPrefabModified;
+        private bool _templatesRootPrefabModified;
+        private bool _templateInitialPoolCountPrefabModified;
+        private bool _itemsContainerPrefabModified;
 
-        private bool viewModelPrefabModified;
-        private bool templatesRootPrefabModified;
-
-        private void OnEnable()
+        protected override void OnEnabled()
         {
             // Initialise everything
-            targetScript = (CollectionBinding)target;
+            _targetScript = (CollectionBinding)target;
+            _templateInitialPoolCountProperty = serializedObject.FindProperty("_templateInitialPoolCount");
+            _itemsContainerProperty = serializedObject.FindProperty("_itemsContainer");
         }
 
-        public override void OnInspectorGUI()
+        protected override void OnInspector()
         {
-            if (CannotModifyInPlayMode())
-            {
-                GUI.enabled = false;
-            }
-
             UpdatePrefabModifiedProperties();
 
-            var defaultLabelStyle = EditorStyles.label.fontStyle;
-            EditorStyles.label.fontStyle = viewModelPrefabModified ? FontStyle.Bold : defaultLabelStyle;
+            EditorStyles.label.fontStyle = _templateInitialPoolCountPrefabModified ? FontStyle.Bold : DefaultFontStyle;
+            EditorGUILayout.PropertyField(_templateInitialPoolCountProperty);
 
+            EditorStyles.label.fontStyle = _itemsContainerPrefabModified ? FontStyle.Bold : DefaultFontStyle;
+            EditorGUILayout.PropertyField(_itemsContainerProperty);
+            
+            EditorStyles.label.fontStyle = _viewModelPrefabModified ? FontStyle.Bold : DefaultFontStyle;
             ShowViewModelPropertyMenu(
                 new GUIContent("View-model property", "Property on the view-model to bind to."),
-                TypeResolver.FindBindableCollectionProperties(targetScript),
-                updatedValue => targetScript.ViewModelPropertyName = updatedValue,
-                targetScript.ViewModelPropertyName,
+                TypeResolver.FindBindableCollectionProperties(_targetScript),
+                updatedValue => _targetScript.ViewModelPropertyName = updatedValue,
+                _targetScript.ViewModelPropertyName,
                 property => true
             );
 
-            EditorStyles.label.fontStyle = templatesRootPrefabModified ? FontStyle.Bold : defaultLabelStyle;
-
+            EditorStyles.label.fontStyle = _templatesRootPrefabModified ? FontStyle.Bold : DefaultFontStyle;
             UpdateProperty(
-                updatedValue => targetScript.TemplatesRoot = updatedValue,
-                targetScript.TemplatesRoot,
+                updatedValue => _targetScript.TemplatesRoot = updatedValue,
+                _targetScript.TemplatesRoot,
                 (GameObject)EditorGUILayout.ObjectField(
                     new GUIContent("Collection templates", "Parent object for all templates to copy and bind to items in the collection."), 
-                    targetScript.TemplatesRoot, 
+                    _targetScript.TemplatesRoot, 
                     typeof(GameObject), 
                     true
                 ),
                 "Set collection templates root"
             );
-
-            EditorStyles.label.fontStyle = defaultLabelStyle;
         }
 
         /// <summary>
@@ -70,11 +72,19 @@ namespace UnityWeld_Editor
                 switch (property.name)
                 {
                     case "viewModelPropertyName":
-                        viewModelPrefabModified = property.prefabOverride;
+                        _viewModelPrefabModified = property.prefabOverride;
+                        break;
+
+                    case "TemplateInitialPoolCount":
+                        _templateInitialPoolCountPrefabModified = property.prefabOverride;
                         break;
 
                     case "templatesRoot":
-                        templatesRootPrefabModified = property.prefabOverride;
+                        _templatesRootPrefabModified = property.prefabOverride;
+                        break;
+                    
+                    case "_itemsContainer":
+                        _itemsContainerPrefabModified = property.prefabOverride;
                         break;
                 }
             }

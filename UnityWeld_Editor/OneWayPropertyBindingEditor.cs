@@ -21,17 +21,12 @@ namespace UnityWeld_Editor
         private bool viewModelPropertyPrefabModified;
         private bool viewPropertyPrefabModified;
 
-        private void OnEnable()
+        protected override void OnEnabled()
         {
             // Initialise reference to target script
             targetScript = (OneWayPropertyBinding)target;
 
-            Type adapterType;
-
-            viewAdapterOptionsFade = new AnimBool(
-                ShouldShowAdapterOptions(targetScript.ViewAdapterId, out adapterType)
-            );
-
+            viewAdapterOptionsFade = new AnimBool(ShouldShowAdapterOptions(targetScript.ViewAdapterId, out _));
             viewAdapterOptionsFade.valueChanged.AddListener(Repaint);
         }
 
@@ -40,13 +35,8 @@ namespace UnityWeld_Editor
             viewAdapterOptionsFade.valueChanged.RemoveListener(Repaint);
         }
 
-        public override void OnInspectorGUI()
+        protected override void OnInspector()
         {
-            if (CannotModifyInPlayMode())
-            {
-                GUI.enabled = false;
-            }
-
             UpdatePrefabModifiedProperties();
 
             var defaultLabelStyle = EditorStyles.label.fontStyle;

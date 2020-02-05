@@ -14,6 +14,12 @@
         <DebugType>full</DebugType>
         <DebugSymbols>true</DebugSymbols>
     </PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+      <DebugType>full</DebugType>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+      <DebugType>portable</DebugType>
+    </PropertyGroup>
     <ItemGroup>
       <ProjectReference Include="..\UnityWeld\UnityWeld.csproj" />
     </ItemGroup>

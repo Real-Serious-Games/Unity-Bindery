@@ -28,27 +28,27 @@ namespace UnityWeld.Binding
             ParseViewModelEndPointReference(
                 ViewModelPropertyName, 
                 out propertyName, 
-                out viewModel
+                out ViewModel
             );
 
-            viewModelPropertyWatcher = new PropertyWatcher(
-                viewModel, 
+            ViewModelPropertyWatcher = new PropertyWatcher(
+                ViewModel, 
                 propertyName, 
-                InitalizeTemplate
+                InitializeTemplate
             );
 
             // Get property from view model.
-            viewModelProperty = viewModel.GetType().GetProperty(propertyName);
+            viewModelProperty = ViewModel.GetType().GetProperty(propertyName);
             if (viewModelProperty == null)
             {
                 throw new MemberNotFoundException(string.Format(
                     "Expected property {0} on type {1}, but was not found.", 
                     propertyName, 
-                    viewModel.GetType().Name
+                    ViewModel.GetType().Name
                 ));
             }
 
-            InitalizeTemplate();
+            InitializeTemplate();
         }
 
 
@@ -59,30 +59,27 @@ namespace UnityWeld.Binding
         {
             DestroyAllTemplates();
 
-            if (viewModelPropertyWatcher != null)
+            if (ViewModelPropertyWatcher != null)
             {
-                viewModelPropertyWatcher.Dispose();
-                viewModelPropertyWatcher = null;
+                ViewModelPropertyWatcher.Dispose();
+                ViewModelPropertyWatcher = null;
             }
 
-            viewModel = null;
+            ViewModel = null;
         }
 
         /// <summary>
-        /// Initalized the correct tempalte based on the type.
+        /// Initialized the correct template based on the type.
         /// </summary>
-        private void InitalizeTemplate()
+        private void InitializeTemplate()
         {
             DestroyAllTemplates();
 
             // Get value from view model.
-            var viewModelPropertyValue = viewModelProperty.GetValue(viewModel, null);
+            var viewModelPropertyValue = viewModelProperty.GetValue(ViewModel, null);
             if (viewModelPropertyValue == null)
             {
-                throw new PropertyNullException(string.Format(
-                    "TemplateBinding cannot bind to null property in view: {0}.", 
-                    ViewModelPropertyName
-                ));
+                throw new PropertyNullException($"TemplateBinding cannot bind to null property in view: {ViewModelPropertyName}.");
             }
 
             InstantiateTemplate(viewModelPropertyValue);

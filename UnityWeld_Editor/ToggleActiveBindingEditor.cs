@@ -18,16 +18,11 @@ namespace UnityWeld_Editor
         private bool viewAdapterOptionsPrefabModified;
         private bool viewModelPropertyPrefabModified;
 
-        private void OnEnable()
+        protected override void OnEnabled()
         {
             targetScript = (ToggleActiveBinding)target;
 
-            Type adapterType;
-
-            viewAdapterOptionsFade = new AnimBool(
-                ShouldShowAdapterOptions(targetScript.ViewAdapterId, out adapterType)
-            );
-
+            viewAdapterOptionsFade = new AnimBool(ShouldShowAdapterOptions(targetScript.ViewAdapterId, out _));
             viewAdapterOptionsFade.valueChanged.AddListener(Repaint);
         }
 
@@ -36,16 +31,9 @@ namespace UnityWeld_Editor
             viewAdapterOptionsFade.valueChanged.RemoveListener(Repaint);
         }
 
-        public override void OnInspectorGUI()
+        protected override void OnInspector()
         {
-            if (CannotModifyInPlayMode())
-            {
-                GUI.enabled = false;
-            }
-
             UpdatePrefabModifiedProperties();
-
-            var defaultLabelStyle = EditorStyles.label.fontStyle;
 
             var viewPropertyType = typeof(bool);
 
@@ -53,7 +41,7 @@ namespace UnityWeld_Editor
 
             EditorStyles.label.fontStyle = viewAdapterPrefabModified
                 ? FontStyle.Bold 
-                : defaultLabelStyle;
+                : DefaultFontStyle;
 
             ShowAdapterMenu(
                 new GUIContent(
@@ -88,7 +76,7 @@ namespace UnityWeld_Editor
 
             EditorStyles.label.fontStyle = viewAdapterOptionsPrefabModified
                 ? FontStyle.Bold
-                : defaultLabelStyle;
+                : DefaultFontStyle;
 
             ShowAdapterOptionsMenu(
                 "View adapter options",
@@ -102,7 +90,7 @@ namespace UnityWeld_Editor
 
             EditorStyles.label.fontStyle = viewModelPropertyPrefabModified
                 ? FontStyle.Bold 
-                : defaultLabelStyle;
+                : DefaultFontStyle;
 
             var adaptedViewPropertyType = AdaptTypeBackward(
                 viewPropertyType, 
@@ -118,8 +106,6 @@ namespace UnityWeld_Editor
                 targetScript.ViewModelPropertyName,
                 property => property.PropertyType == adaptedViewPropertyType
             );
-
-            EditorStyles.label.fontStyle = defaultLabelStyle;
         }
 
         private void UpdatePrefabModifiedProperties()

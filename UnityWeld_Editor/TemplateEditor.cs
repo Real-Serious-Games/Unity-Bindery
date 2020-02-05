@@ -21,18 +21,13 @@ namespace UnityWeld_Editor
         /// </summary>
         private bool propertyPrefabModified;
 
-        private void OnEnable()
+        protected override void OnEnabled()
         {
             targetScript = (Template)target;
         }
 
-        public override void OnInspectorGUI()
+        protected override void OnInspector()
         {
-            if (CannotModifyInPlayMode())
-            {
-                GUI.enabled = false;
-            }
-
             UpdatePrefabModifiedProperties();
 
             var availableViewModels = TypeResolver.TypesWithBindingAttribute
@@ -45,10 +40,9 @@ namespace UnityWeld_Editor
                 targetScript.ViewModelTypeName
             );
 
-            var defaultLabelStyle = EditorStyles.label.fontStyle;
             EditorStyles.label.fontStyle = propertyPrefabModified 
                 ? FontStyle.Bold 
-                : defaultLabelStyle;
+                : DefaultFontStyle;
 
             var newSelectedIndex = EditorGUILayout.Popup(
                 new GUIContent(
@@ -61,7 +55,7 @@ namespace UnityWeld_Editor
                     .ToArray()
             );
 
-            EditorStyles.label.fontStyle = defaultLabelStyle;
+            EditorStyles.label.fontStyle = DefaultFontStyle;
 
             UpdateProperty(newValue => targetScript.ViewModelTypeName = newValue,
                 selectedIndex < 0 

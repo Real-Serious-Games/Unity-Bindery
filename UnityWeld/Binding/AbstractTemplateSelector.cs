@@ -10,108 +10,83 @@ namespace UnityWeld.Binding
 {
     public abstract class AbstractTemplateSelector : AbstractMemberBinding
     {
+        [SerializeField] private GameObject templatesRoot;
+        [SerializeField] private string viewModelPropertyName = string.Empty;
+
+        private IDictionary<Type, Template> _availableTemplates;
+
+        /// <summary>
+        /// All the child objects that have been created, indexed by the view they are connected to.
+        /// </summary>
+        private readonly IDictionary<object, Template> _instantiatedTemplates = new Dictionary<object, Template>();
+
+
         /// <summary>
         /// The view-model, cached during connection.
         /// </summary>
-        protected object viewModel;
+        protected object ViewModel;
+
+        /// <summary>
+        /// Watches the view-model property for changes.
+        /// </summary>
+        protected PropertyWatcher ViewModelPropertyWatcher;
 
         /// <summary>
         /// The name of the property we are binding to on the view model.
         /// </summary>
         public string ViewModelPropertyName
         {
-            get { return viewModelPropertyName; }
-            set { viewModelPropertyName = value; }
+            get => viewModelPropertyName;
+            set => viewModelPropertyName = value;
         }
-
-        [SerializeField]
-        private string viewModelPropertyName = string.Empty;
-
-        /// <summary>
-        /// Watches the view-model property for changes.
-        /// </summary>
-        protected PropertyWatcher viewModelPropertyWatcher;
 
         /// <summary>
         /// The GameObject in the scene that is the parent object for the tenplates.
         /// </summary>
         public GameObject TemplatesRoot
         {
-            get { return templatesRoot; }
-            set { templatesRoot = value; }
+            get => templatesRoot;
+            set => templatesRoot = value;
         }
-
-        [SerializeField]
-        private GameObject templatesRoot;
 
         /// <summary>
         /// All available templates indexed by the view model the are for.
         /// </summary>
-        private IDictionary<Type, Template> AvailableTemplates
+        protected IDictionary<Type, Template> AvailableTemplates
         {
             get
             {
-                if (availableTemplates == null)
+                if(_availableTemplates == null)
                 {
                     CacheTemplates();
                 }
 
-                return availableTemplates;
+                return _availableTemplates;
             }
         }
-
-        private IDictionary<Type, Template> availableTemplates;
-
-        /// <summary>
-        /// All the child objects that have been created, indexed by the view they are connected to.
-        /// </summary>
-        private readonly IDictionary<object, GameObject> instantiatedTemplates = new Dictionary<object, GameObject>();
 
         // Cache available templates.
         private void CacheTemplates()
         {
-            availableTemplates = new Dictionary<Type, Template>();
+            _availableTemplates = new Dictionary<Type, Template>();
 
             var buffer = Buffer.Templates;
-            templatesRoot.GetComponentsInChildren<Template>(true, buffer);
-            foreach (var template in buffer)
+            templatesRoot.GetComponentsInChildren(true, buffer);
+            foreach(var template in buffer)
             {
                 template.gameObject.SetActive(false);
                 var typeName = template.GetViewModelTypeName();
                 var type = TypeResolver.TypesWithBindingAttribute.FirstOrDefault(t => t.ToString() == typeName);
-                if (type == null)
+                if(type == null)
                 {
-                    Debug.LogError($"Template object {template.name} references type {typeName}, but no matching type with a [Binding] attribute could be found.", template);
+                    Debug.LogError(
+                        $"Template object {template.name} references type {typeName}, but no matching type with a [Binding] attribute could be found.",
+                        template);
                     continue;
                 }
-                
-                availableTemplates.Add(type, template);
+
+                _availableTemplates.Add(type, template);
             }
-        }
-
-        /// <summary>
-        /// Create a clone of the template object and bind it to the specified view model.
-        /// Place the new object under the parent at the specified index, or 0 if no index
-        /// is specified.
-        /// </summary>
-        protected void InstantiateTemplate(object templateViewModel, int index = 0)
-        {
-            Assert.IsNotNull(templateViewModel, "Cannot instantiate child with null view model");
-            
-            // Select template.
-            var selectedTemplate = FindTemplateForType(templateViewModel.GetType());
-
-            var newObject = Instantiate(selectedTemplate);
-            newObject.transform.SetParent(transform, false);
-
-            newObject.transform.SetSiblingIndex(index);
-
-            instantiatedTemplates.Add(templateViewModel, newObject.gameObject);
-
-            // Set up child bindings before we activate the template object so that they will be configured properly before trying to connect.
-            newObject.InitChildBindings(templateViewModel);
-
-            newObject.gameObject.SetActive(true);
         }
 
         /// <summary>
@@ -120,19 +95,20 @@ namespace UnityWeld.Binding
         private Template FindTemplateForType(Type templateType)
         {
             var possibleMatches = FindTypesMatchingTemplate(templateType);
-                    // .OrderBy(m => m.Key)
-                    // .ToList();
+            // .OrderBy(m => m.Key)
+            // .ToList();
 
-            if (possibleMatches.Count == 0)
+            if(possibleMatches.Count == 0)
             {
                 throw new TemplateNotFoundException("Could not find any template matching type " + templateType);
             }
 
-            if (possibleMatches.Count > 1)
+            if(possibleMatches.Count > 1)
             {
                 throw new AmbiguousTypeException("Multiple templates were found that match type " + templateType
-                    + ". This can be caused by providing multiple templates that match types " + templateType
-                    + " inherits from the same level. Remove one or provide a template that more specifically matches the type.");
+                                                                                                  + ". This can be caused by providing multiple templates that match types " +
+                                                                                                  templateType
+                                                                                                  + " inherits from the same level. Remove one or provide a template that more specifically matches the type.");
             }
 
             return AvailableTemplates[possibleMatches[0]];
@@ -153,10 +129,11 @@ namespace UnityWeld.Binding
         {
             var interfaces = originalType.GetInterfaces();
             var result = new List<Type>(interfaces.Length + 1);
-            if (originalType.BaseType != null)
+            if(originalType.BaseType != null)
             {
                 result.Add(originalType.BaseType);
             }
+
             result.AddRange(interfaces);
             return result;
         }
@@ -166,32 +143,60 @@ namespace UnityWeld.Binding
             var result = new List<Type>();
             var levelToCheck = GetTypeWithInterfaces(originalType);
 
-            while (levelToCheck.Count > 0)
+            while(levelToCheck.Count > 0)
             {
                 var validTypesList = new List<Type>();
                 var newLevelToCheck = new List<Type>();
-                foreach (var type in levelToCheck)
+                foreach(var type in levelToCheck)
                 {
                     newLevelToCheck.AddRange(GetBaseTypeWithInterfaces(type));
 
-                    if (AvailableTemplates.ContainsKey(type))
+                    if(AvailableTemplates.ContainsKey(type))
                     {
                         validTypesList.Add(type);
                     }
                 }
 
-                if (validTypesList.Count > 0)
+                if(validTypesList.Count > 0)
                 {
                     return validTypesList;
                 }
 
-                if (newLevelToCheck.Count > 0)
+                if(newLevelToCheck.Count > 0)
                 {
                     levelToCheck = newLevelToCheck;
                 }
             }
 
             return result;
+        }
+
+        protected virtual Template CloneTemplate(Template template)
+        {
+            return Instantiate(template, transform);
+        }
+
+        protected virtual void OnTemplateDestroy(Template template) { }
+
+        /// <summary>
+        /// Create a clone of the template object and bind it to the specified view model.
+        /// Place the new object under the parent at the specified index, or 0 if no index
+        /// is specified.
+        /// </summary>
+        protected void InstantiateTemplate(object templateViewModel, int index = 0)
+        {
+            Assert.IsNotNull(templateViewModel, "Cannot instantiate child with null view model");
+
+            // Select template.
+            var selectedTemplate = FindTemplateForType(templateViewModel.GetType());
+            var newObject = CloneTemplate(selectedTemplate);
+
+            newObject.transform.SetSiblingIndex(index);
+            _instantiatedTemplates.Add(templateViewModel, newObject);
+
+            // Set up child bindings before we activate the template object so that they will be configured properly before trying to connect.
+            newObject.InitChildBindings(templateViewModel);
+            newObject.gameObject.SetActive(true);
         }
 
         /// <summary>
@@ -229,8 +234,9 @@ namespace UnityWeld.Binding
         /// </summary>
         protected void DestroyTemplate(object viewModelToDestroy)
         {
-            Destroy(instantiatedTemplates[viewModelToDestroy]);
-            instantiatedTemplates.Remove(viewModelToDestroy);
+            var template = _instantiatedTemplates[viewModelToDestroy];
+            OnTemplateDestroy(template);
+            _instantiatedTemplates.Remove(viewModelToDestroy);
         }
 
         /// <summary>
@@ -238,12 +244,13 @@ namespace UnityWeld.Binding
         /// </summary>
         protected void DestroyAllTemplates()
         {
-            foreach (var generatedChild in instantiatedTemplates.Values)
-            {
-                Destroy(generatedChild);
-            }
+            var templates = _instantiatedTemplates.Values.ToList();
+            _instantiatedTemplates.Clear();
 
-            instantiatedTemplates.Clear();
+            foreach(var template in templates)
+            {
+                OnTemplateDestroy(template);
+            }
         }
     }
 }

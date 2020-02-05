@@ -32,23 +32,13 @@ namespace UnityWeld_Editor
         private bool exceptionAdapterPrefabModified;
         private bool exceptionAdapterOptionsPrefabModified;
 
-        private void OnEnable()
+        protected override void OnEnabled()
         {
             targetScript = (TwoWayPropertyBinding)target;
 
-            Type adapterType;
-            viewAdapterOptionsFade = new AnimBool(ShouldShowAdapterOptions(
-                targetScript.ViewAdapterId, 
-                out adapterType
-            ));
-            viewModelAdapterOptionsFade = new AnimBool(ShouldShowAdapterOptions(
-                targetScript.ViewModelAdapterId, 
-                out adapterType
-            ));
-            exceptionAdapterOptionsFade = new AnimBool(ShouldShowAdapterOptions(
-                targetScript.ExceptionAdapterTypeName, 
-                out adapterType
-            ));
+            viewAdapterOptionsFade = new AnimBool(ShouldShowAdapterOptions(targetScript.ViewAdapterId, out _));
+            viewModelAdapterOptionsFade = new AnimBool(ShouldShowAdapterOptions(targetScript.ViewModelAdapterId, out _));
+            exceptionAdapterOptionsFade = new AnimBool(ShouldShowAdapterOptions(targetScript.ExceptionAdapterTypeName, out _));
 
             viewAdapterOptionsFade.valueChanged.AddListener(Repaint);
             viewModelAdapterOptionsFade.valueChanged.AddListener(Repaint);
@@ -62,20 +52,13 @@ namespace UnityWeld_Editor
             exceptionAdapterOptionsFade.valueChanged.RemoveListener(Repaint);
         }
 
-        public override void OnInspectorGUI()
+        protected override void OnInspector()
         {
-            if (CannotModifyInPlayMode())
-            {
-                GUI.enabled = false;
-            }
-
             UpdatePrefabModifiedProperties();
-
-            var defaultLabelStyle = EditorStyles.label.fontStyle;
 
             EditorStyles.label.fontStyle = viewEventPrefabModified 
                 ? FontStyle.Bold 
-                : defaultLabelStyle;
+                : DefaultFontStyle;
 
             ShowEventMenu(
                 UnityEventWatcher.GetBindableEvents(targetScript.gameObject)
@@ -87,7 +70,7 @@ namespace UnityWeld_Editor
 
             EditorStyles.label.fontStyle = viewPropertyPrefabModified 
                 ? FontStyle.Bold 
-                : defaultLabelStyle;
+                : DefaultFontStyle;
 
             Type viewPropertyType;
             ShowViewPropertyMenu(
@@ -114,7 +97,7 @@ namespace UnityWeld_Editor
 
             EditorStyles.label.fontStyle = viewAdapterPrefabModified 
                 ? FontStyle.Bold 
-                : defaultLabelStyle;
+                : DefaultFontStyle;
 
             ShowAdapterMenu(
                 new GUIContent(
@@ -143,7 +126,7 @@ namespace UnityWeld_Editor
 
             EditorStyles.label.fontStyle = viewAdapterOptionsPrefabModified 
                 ? FontStyle.Bold 
-                : defaultLabelStyle;
+                : DefaultFontStyle;
 
             Type viewAdapterType;
             viewAdapterOptionsFade.target = ShouldShowAdapterOptions(
@@ -162,7 +145,7 @@ namespace UnityWeld_Editor
 
             EditorStyles.label.fontStyle = viewModelPropertyPrefabModified 
                 ? FontStyle.Bold 
-                : defaultLabelStyle;
+                : DefaultFontStyle;
 
             var adaptedViewPropertyType = AdaptTypeBackward(
                 viewPropertyType, 
@@ -184,7 +167,7 @@ namespace UnityWeld_Editor
 
             EditorStyles.label.fontStyle = viewModelAdapterPrefabModified 
                 ? FontStyle.Bold 
-                : defaultLabelStyle;
+                : DefaultFontStyle;
 
             ShowAdapterMenu(
                 new GUIContent(
@@ -212,7 +195,7 @@ namespace UnityWeld_Editor
 
             EditorStyles.label.fontStyle = viewModelAdapterOptionsPrefabModified 
                 ? FontStyle.Bold 
-                : defaultLabelStyle;
+                : DefaultFontStyle;
 
             Type viewModelAdapterType;
             viewModelAdapterOptionsFade.target = ShouldShowAdapterOptions(
@@ -234,7 +217,7 @@ namespace UnityWeld_Editor
 
             EditorStyles.label.fontStyle = exceptionPropertyPrefabModified 
                 ? FontStyle.Bold 
-                : defaultLabelStyle;
+                : DefaultFontStyle;
 
             var adaptedExceptionPropertyType = AdaptTypeForward(
                 typeof(Exception), 
@@ -253,7 +236,7 @@ namespace UnityWeld_Editor
 
             EditorStyles.label.fontStyle = exceptionAdapterPrefabModified 
                 ? FontStyle.Bold 
-                : defaultLabelStyle;
+                : DefaultFontStyle;
 
             ShowAdapterMenu(
                 new GUIContent(
@@ -281,7 +264,7 @@ namespace UnityWeld_Editor
 
             EditorStyles.label.fontStyle = exceptionAdapterOptionsPrefabModified 
                 ? FontStyle.Bold 
-                : defaultLabelStyle;
+                : DefaultFontStyle;
 
             Type exceptionAdapterType;
             exceptionAdapterOptionsFade.target = ShouldShowAdapterOptions(
@@ -295,8 +278,6 @@ namespace UnityWeld_Editor
                 targetScript.ExceptionAdapterOptions,
                 exceptionAdapterOptionsFade.faded
             );
-
-            EditorStyles.label.fontStyle = defaultLabelStyle;
 
             GUI.enabled = guiPreviouslyEnabled;
         }

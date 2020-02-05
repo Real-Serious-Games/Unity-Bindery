@@ -13,24 +13,18 @@ namespace UnityWeld_Editor
         private bool viewModelPrefabModified;
         private bool templatesRootPrefabModified;
 
-        private void OnEnable()
+        protected override  void OnEnabled()
         {
             targetScript = (TemplateBinding)target;
         }
 
-        public override void OnInspectorGUI()
+        protected override void OnInspector()
         {
-            if (CannotModifyInPlayMode())
-            {
-                GUI.enabled = false;
-            }
-
             UpdatePrefabModifiedProperties();
 
-            var defaultLabelStyle = EditorStyles.label.fontStyle;
             EditorStyles.label.fontStyle = viewModelPrefabModified 
                 ? FontStyle.Bold 
-                : defaultLabelStyle;
+                : DefaultFontStyle;
 
             ShowViewModelPropertyMenu(
                 new GUIContent(
@@ -45,7 +39,7 @@ namespace UnityWeld_Editor
 
             EditorStyles.label.fontStyle = templatesRootPrefabModified 
                 ? FontStyle.Bold 
-                : defaultLabelStyle;
+                : DefaultFontStyle;
 
             UpdateProperty(
                 updatedValue => targetScript.TemplatesRoot = updatedValue,
@@ -61,8 +55,6 @@ namespace UnityWeld_Editor
                 ),
                 "Set template binding root object"
             );
-
-            EditorStyles.label.fontStyle = defaultLabelStyle;
         }
 
         /// <summary>

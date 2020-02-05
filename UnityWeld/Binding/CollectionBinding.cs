@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
 using UnityEngine;
@@ -19,26 +20,45 @@ namespace UnityWeld.Binding
     [HelpURL("https://github.com/Real-Serious-Games/Unity-Weld")]
     public class CollectionBinding : AbstractTemplateSelector
     {
+        private readonly IDictionary<string, Queue<Template>> _pool = new Dictionary<string, Queue<Template>>();
+
         /// <summary>
         /// Collection that we have bound to.
         /// </summary>
-        private IEnumerable viewModelCollectionValue;
-        
+        private IEnumerable _viewModelCollectionValue;
+
+        [SerializeField]
+        private Transform _itemsContainer;
+        [SerializeField] 
+        private int _templateInitialPoolCount = 0;
+
+        public Transform ItemsContainer
+        {
+            get => _itemsContainer;
+            set => _itemsContainer = value;
+        }
+
+        public int TemplateInitialPoolCount
+        {
+            get => _templateInitialPoolCount;
+            set => _templateInitialPoolCount = value;
+        }
+
+        protected Transform Container => _itemsContainer ? _itemsContainer : transform;
+
         public override void Connect()
         {
             Disconnect();
 
-            string propertyName;
-            object newViewModel;
             ParseViewModelEndPointReference(
                 ViewModelPropertyName, 
-                out propertyName, 
-                out newViewModel
+                out var propertyName, 
+                out var newViewModel
             );
 
-            viewModel = newViewModel;
+            ViewModel = newViewModel;
 
-            viewModelPropertyWatcher = new PropertyWatcher(
+            ViewModelPropertyWatcher = new PropertyWatcher(
                 newViewModel, 
                 propertyName, 
                 NotifyPropertyChanged_PropertyChanged
@@ -51,13 +71,13 @@ namespace UnityWeld.Binding
         {
             UnbindCollection();
 
-            if (viewModelPropertyWatcher != null)
+            if (ViewModelPropertyWatcher != null)
             {
-                viewModelPropertyWatcher.Dispose();
-                viewModelPropertyWatcher = null;
+                ViewModelPropertyWatcher.Dispose();
+                ViewModelPropertyWatcher = null;
             }
 
-            viewModel = null;
+            ViewModel = null;
         }
 
         private void NotifyPropertyChanged_PropertyChanged()
@@ -73,7 +93,7 @@ namespace UnityWeld.Binding
                     // Add items that were added to the bound collection.
                     if (e.NewItems != null)
                     {
-                        var list = viewModelCollectionValue as IList;
+                        var list = _viewModelCollectionValue as IList;
 
                         foreach (var item in e.NewItems)
                         {
@@ -118,53 +138,40 @@ namespace UnityWeld.Binding
         private void BindCollection()
         {
             // Bind view model.
-            var viewModelType = viewModel.GetType();
+            var viewModelType = ViewModel.GetType();
 
-            string propertyName;
-            string viewModelName;
-            ParseEndPointReference(
-                ViewModelPropertyName, 
-                out propertyName, 
-                out viewModelName
-            );
+            ParseEndPointReference(ViewModelPropertyName, out var propertyName, out _);
 
             var viewModelCollectionProperty = viewModelType.GetProperty(propertyName);
             if (viewModelCollectionProperty == null)
             {
                 throw new MemberNotFoundException(
-                    "Expected property " 
-                    + ViewModelPropertyName + ", but it wasn't found on type " 
-                    + viewModelType + "."
-                );
+                    $"Expected property {ViewModelPropertyName}, but it wasn't found on type {viewModelType}.");
             }
 
             // Get value from view model.
-            var viewModelValue = viewModelCollectionProperty.GetValue(viewModel, null);
+            var viewModelValue = viewModelCollectionProperty.GetValue(ViewModel, null);
             if (viewModelValue == null)
             {
                 return;
             }
 
-            viewModelCollectionValue = viewModelValue as IEnumerable;
-            if (viewModelCollectionValue == null)
+            _viewModelCollectionValue = viewModelValue as IEnumerable;
+            if (_viewModelCollectionValue == null)
             {
                 throw new InvalidTypeException(
-                    "Property " 
-                    + ViewModelPropertyName 
-                    + " is not a collection and cannot be used to bind collections."
-                );
+                    $"Property {ViewModelPropertyName} is not a collection and cannot be used to bind collections.");
             }
 
             // Generate children
-            var collectionAsList = viewModelCollectionValue.Cast<object>().ToList();
+            var collectionAsList = _viewModelCollectionValue.Cast<object>().ToList();
             for (var index = 0; index < collectionAsList.Count; index++)
             {
                 InstantiateTemplate(collectionAsList[index], index);
             }
 
             // Subscribe to collection changed events.
-            var collectionChanged = viewModelCollectionValue as INotifyCollectionChanged;
-            if (collectionChanged != null)
+            if (_viewModelCollectionValue is INotifyCollectionChanged collectionChanged)
             {
                 collectionChanged.CollectionChanged += Collection_CollectionChanged;
             }
@@ -178,15 +185,15 @@ namespace UnityWeld.Binding
             DestroyAllTemplates();
 
             // Unsubscribe from collection changed events.
-            if (viewModelCollectionValue != null)
+            if (_viewModelCollectionValue != null)
             {
-                var collectionChanged = viewModelCollectionValue as INotifyCollectionChanged;
+                var collectionChanged = _viewModelCollectionValue as INotifyCollectionChanged;
                 if (collectionChanged != null)
                 {
                     collectionChanged.CollectionChanged -= Collection_CollectionChanged;
                 }
 
-                viewModelCollectionValue = null;
+                _viewModelCollectionValue = null;
             }
         }
 
@@ -199,5 +206,49 @@ namespace UnityWeld.Binding
             BindCollection();
         }
 
+        protected override Template CloneTemplate(Template template)
+        {
+            if(_pool.TryGetValue(template.ViewModelTypeName, out var pool) && pool.Count > 0)
+            {
+                return  pool.Dequeue();
+            }
+
+            return base.CloneTemplate(template);
+        }
+
+        protected override void OnTemplateDestroy(Template template)
+        {
+            PutTemplateToPool(template);
+        }
+
+        private void PutTemplateToPool(Template template)
+        {
+            template.gameObject.SetActive(false);
+            template.SetBindings(false);
+
+            if(!_pool.TryGetValue(template.ViewModelTypeName, out var pool))
+            {
+                _pool.Add(template.ViewModelTypeName, pool = new Queue<Template>());
+            }
+
+            pool.Enqueue(template);
+        }
+
+        public void WarmUpTemplates()
+        {
+            foreach(var template in AvailableTemplates.Values)
+            {
+                for(var i = 0; i < TemplateInitialPoolCount; i++)
+                {
+                    var clone = Instantiate(template, Container);
+                    PutTemplateToPool(clone);
+
+                    foreach(var collectionBinding in BindingHelpers.IterateComponents<CollectionBinding>(clone.gameObject))
+                    {
+                        collectionBinding.WarmUpTemplates();
+                    }
+                }
+            }
+        }
     }
 }

@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Assertions;
 
@@ -12,6 +14,8 @@ namespace UnityWeld.Binding
         /// Set the view model and initialise all binding objects down the hierarchy.
         /// </summary>
         void InitChildBindings(object viewModel);
+
+        void SetBindings(bool isInit);
     }
 
     /// <summary>
@@ -51,6 +55,26 @@ namespace UnityWeld.Binding
         /// </summary>
         private object viewModel;
 
+        public void SetBindings(bool isInit)
+        {
+            foreach (var binding in BindingHelpers.IterateComponents<AbstractMemberBinding>(gameObject))
+            {
+                if (isInit)
+                {
+                    binding.Init();
+                }
+                else
+                {
+                    binding.ResetBinding();
+                }
+            }
+
+            if(!isInit)
+            {
+                viewModel = null;
+            }
+        }
+
         /// <summary>
         /// Set the view model and initialise all binding objects down the hierarchy.
         /// </summary>
@@ -60,13 +84,9 @@ namespace UnityWeld.Binding
 
             // Set the bound view to the new view model.
             this.viewModel = viewModel;
-
-            var buffer = Buffer.AbstractMemberBindings;
-            GetComponentsInChildren<AbstractMemberBinding>(buffer);
-            foreach (var binding in buffer)
-            {
-                binding.Init();
-            }
+            SetBindings(true);
         }
+
+        public const string TemplatesContainerName = "_templates";
     }
 } 

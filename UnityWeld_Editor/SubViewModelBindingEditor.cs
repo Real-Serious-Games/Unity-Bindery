@@ -20,26 +20,20 @@ namespace UnityWeld_Editor
         /// </summary>
         private bool propertyPrefabModified;
 
-        private void OnEnable()
+        protected override  void OnEnabled()
         {
             targetScript = (SubViewModelBinding)target;
         }
 
-        public override void OnInspectorGUI()
+        protected override void OnInspector()
         {
-            if (CannotModifyInPlayMode())
-            {
-                GUI.enabled = false;
-            }
-
             UpdatePrefabModifiedProperties();
 
             var bindableProperties = FindBindableProperties();
 
-            var defaultLabelStyle = EditorStyles.label.fontStyle;
             EditorStyles.label.fontStyle = propertyPrefabModified 
                 ? FontStyle.Bold 
-                : defaultLabelStyle;
+                : DefaultFontStyle;
 
             ShowViewModelPropertyMenu(
                 new GUIContent(
@@ -58,8 +52,6 @@ namespace UnityWeld_Editor
                 targetScript.ViewModelPropertyName,
                 p => true
             );
-
-            EditorStyles.label.fontStyle = defaultLabelStyle;
         }
 
         private BindableMember<PropertyInfo>[] FindBindableProperties()

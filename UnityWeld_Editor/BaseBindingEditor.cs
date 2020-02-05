@@ -11,8 +11,11 @@ namespace UnityWeld_Editor
     /// <summary>
     /// A base editor for Unity-Weld bindings.
     /// </summary>
-    public class BaseBindingEditor : Editor
+    public abstract class BaseBindingEditor : Editor
     {
+        protected FontStyle DefaultFontStyle;
+        private SerializedProperty _autoConnectionProperty;
+        
         /// <summary>
         /// Sets the specified value and sets dirty to true if it doesn't match the old value.
         /// </summary>
@@ -68,6 +71,47 @@ namespace UnityWeld_Editor
             }
         }
 
+        protected abstract void OnEnabled();
+        protected abstract void OnInspector();
+
+        private void OnEnable()
+        {
+            _autoConnectionProperty = serializedObject.FindProperty("_isAutoConnection");
+            OnEnabled();
+        }
+
+        public sealed override void OnInspectorGUI()
+        {
+            serializedObject.Update();
+
+            if (CannotModifyInPlayMode())
+            {
+                GUI.enabled = false;
+            }
+
+            DefaultFontStyle = EditorStyles.label.fontStyle;
+
+            if (_autoConnectionProperty != null)
+            {
+                EditorGUILayout.PropertyField(_autoConnectionProperty);
+            }
+
+            OnInspector();
+
+            serializedObject.ApplyModifiedProperties();
+
+            EditorStyles.label.fontStyle = DefaultFontStyle;
+        }
+
+        protected void ShowAutoConnection(bool currentValue, Action<bool> valueSetter)
+        {
+            var newValue = EditorGUILayout.Toggle("Auto Connection", currentValue);
+            if (newValue != currentValue)
+            {
+                valueSetter(newValue);
+            }
+        }
+        
         /// <summary>
         /// Display a popup menu for selecting a property from a view-model.
         /// </summary>
@@ -362,5 +406,5 @@ namespace UnityWeld_Editor
         {
             return string.Concat(evt.ComponentType.ToString(), ".", evt.Name);
         }
-    }
+   }
 }
