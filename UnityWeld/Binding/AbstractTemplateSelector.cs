@@ -10,7 +10,8 @@ namespace UnityWeld.Binding
 {
     public abstract class AbstractTemplateSelector : AbstractMemberBinding
     {
-        [SerializeField] private GameObject templatesRoot;
+        [Header("Set templates for collection")]
+        [SerializeField] private Template[] _templates;
         [SerializeField] private string viewModelPropertyName = string.Empty;
 
         private IDictionary<Type, Template> _availableTemplates;
@@ -40,13 +41,10 @@ namespace UnityWeld.Binding
             set => viewModelPropertyName = value;
         }
 
-        /// <summary>
-        /// The GameObject in the scene that is the parent object for the tenplates.
-        /// </summary>
-        public GameObject TemplatesRoot
+        public Template[] Templates
         {
-            get => templatesRoot;
-            set => templatesRoot = value;
+            get => _templates;
+            set => _templates = value;
         }
 
         /// <summary>
@@ -68,25 +66,23 @@ namespace UnityWeld.Binding
         // Cache available templates.
         private void CacheTemplates()
         {
+            if(_templates == null || _templates.Length == 0)
+            {
+                return;
+            }
+
             _availableTemplates = new Dictionary<Type, Template>();
 
-            var buffer = Buffer.Templates;
-            templatesRoot.GetComponentsInChildren(true, buffer);
-            foreach(var template in buffer)
-            {
-                template.gameObject.SetActive(false);
-                var typeName = template.GetViewModelTypeName();
-                var type = TypeResolver.TypesWithBindingAttribute.FirstOrDefault(t => t.ToString() == typeName);
-                if(type == null)
-                {
-                    Debug.LogError(
-                        $"Template object {template.name} references type {typeName}, but no matching type with a [Binding] attribute could be found.",
-                        template);
-                    continue;
-                }
 
-                _availableTemplates.Add(type, template);
-            }
+            _availableTemplates = _templates
+                                  .Select(template =>
+                                  {
+                                      var typeName = template.GetViewModelTypeName();
+                                      var type = TypeResolver.TypesWithBindingAttribute
+                                                             .FirstOrDefault(t => t.ToString() == typeName);
+                                      return (type, template);
+                                  })
+                                  .ToDictionary(o => o.type, o => o.template);
         }
 
         /// <summary>

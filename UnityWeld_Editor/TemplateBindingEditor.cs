@@ -11,11 +11,12 @@ namespace UnityWeld_Editor
         private TemplateBinding targetScript;
 
         private bool viewModelPrefabModified;
-        private bool templatesRootPrefabModified;
+        private SerializedProperty _templatesProperty;
 
         protected override  void OnEnabled()
         {
             targetScript = (TemplateBinding)target;
+            _templatesProperty = serializedObject.FindProperty("_templates");
         }
 
         protected override void OnInspector()
@@ -37,24 +38,7 @@ namespace UnityWeld_Editor
                 property => true
             );
 
-            EditorStyles.label.fontStyle = templatesRootPrefabModified 
-                ? FontStyle.Bold 
-                : DefaultFontStyle;
-
-            UpdateProperty(
-                updatedValue => targetScript.TemplatesRoot = updatedValue,
-                targetScript.TemplatesRoot,
-                (GameObject)EditorGUILayout.ObjectField(
-                    new GUIContent(
-                        "Templates root object", 
-                        "Parent object to the objects we want to use as templates."
-                    ),
-                    targetScript.TemplatesRoot, 
-                    typeof(GameObject), 
-                    true
-                ),
-                "Set template binding root object"
-            );
+            EditorGUILayout.PropertyField(_templatesProperty, true);
         }
 
         /// <summary>
@@ -73,10 +57,6 @@ namespace UnityWeld_Editor
                 {
                     case "viewModelPropertyName":
                         viewModelPrefabModified = property.prefabOverride;
-                        break;
-
-                    case "templatesRoot":
-                        templatesRootPrefabModified = property.prefabOverride;
                         break;
                 }
             }
