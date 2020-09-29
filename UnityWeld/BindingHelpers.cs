@@ -39,12 +39,6 @@ namespace UnityWeld
             {
                 var transform = stack.Pop();
 
-                //ignore containers with templates
-                if (string.Equals(transform.name, Template.TemplatesContainerName, StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-
                 var component = transform.GetComponent<T>();
                 if (component != null)
                 {

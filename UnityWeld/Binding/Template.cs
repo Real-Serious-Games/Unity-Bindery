@@ -86,7 +86,5 @@ namespace UnityWeld.Binding
             this.viewModel = viewModel;
             SetBindings(true);
         }
-
-        public const string TemplatesContainerName = "_templates";
     }
 } 
