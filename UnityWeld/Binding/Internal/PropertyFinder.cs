@@ -26,23 +26,22 @@ namespace UnityWeld.Binding.Internal
         /// </summary>
         public static IEnumerable<BindableMember<PropertyInfo>> GetBindableProperties(GameObject gameObject) //todo: Maybe move this to the TypeResolver.
         {
-            Assert.IsNotNull(gameObject);
-
-            var buffer = Buffer.Components;
-            gameObject.GetComponents<Component>(buffer);
-            return buffer
-                .SelectMany(component =>
-                {
-                    var type = component.GetType();
-                    return type
-                        .GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                        .Select(p => new BindableMember<PropertyInfo>(p, type));
-                })
-                .Where(prop => prop.Member.GetSetMethod(false) != null 
-                    && prop.Member.GetGetMethod(false) != null
-                    && !hiddenTypes.Contains(prop.ViewModelType)
-                    && !prop.Member.GetCustomAttributes(typeof(ObsoleteAttribute), true).Any()
-                );
+            using(var cache = gameObject.GetComponentsWithCache<Component>())
+            {
+                return cache.Components
+                       .SelectMany(component =>
+                       {
+                           var type = component.GetType();
+                           return type
+                                  .GetProperties(BindingFlags.Instance | BindingFlags.Public)
+                                  .Select(p => new BindableMember<PropertyInfo>(p, type));
+                       })
+                       .Where(prop => prop.Member.GetSetMethod(false) != null
+                                      && prop.Member.GetGetMethod(false) != null
+                                      && !hiddenTypes.Contains(prop.ViewModelType)
+                                      && !prop.Member.GetCustomAttributes(typeof(ObsoleteAttribute), true).Any()
+                       );
+            }
         }
     }
 }

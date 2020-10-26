@@ -16,7 +16,7 @@ namespace UnityWeld.Binding
         /// </summary>
         public object GetViewModel()
         {
-            if (viewModel == null)
+            if(viewModel == null)
             {
                 Connect();
             }
@@ -41,8 +41,7 @@ namespace UnityWeld.Binding
             set { viewModelPropertyName = value; }
         }
 
-        [SerializeField]
-        private string viewModelPropertyName;
+        [SerializeField] private string viewModelPropertyName;
 
         /// <summary>
         /// Name of the type of the view model we're binding to. Set from the Unity inspector.
@@ -53,8 +52,7 @@ namespace UnityWeld.Binding
             set { viewModelTypeName = value; }
         }
 
-        [SerializeField]
-        private string viewModelTypeName;
+        [SerializeField] private string viewModelTypeName;
 
         /// <summary>
         /// Watches the view-model proper for changes.
@@ -71,14 +69,13 @@ namespace UnityWeld.Binding
         /// </summary>
         private void UpdateViewModel()
         {
-            string propertyName;
-            object parentViewModel;
-            ParseViewModelEndPointReference(viewModelPropertyName, out propertyName, out parentViewModel);
+            ParseViewModelEndPointReference(viewModelPropertyName, out var propertyName, out var parentViewModel);
 
             var propertyInfo = parentViewModel.GetType().GetProperty(propertyName);
-            if (propertyInfo == null)
+            if(propertyInfo == null)
             {
-                throw new MemberNotFoundException(string.Format("Could not find property \"{0}\" on view model \"{1}\".", propertyName, parentViewModel.GetType()));
+                throw new MemberNotFoundException(
+                    $"Could not find property \"{propertyName}\" on view model \"{parentViewModel.GetType()}\".");
             }
 
             viewModel = propertyInfo.GetValue(parentViewModel, null);
@@ -86,24 +83,23 @@ namespace UnityWeld.Binding
 
         public override void Connect()
         {
-            if (viewModelPropertyWatcher != null)
+            if(viewModelPropertyWatcher != null)
             {
                 // Already connected - no need to connect again.
                 return;
             }
 
-            string propertyName;
-            object parentViewModel;
-            ParseViewModelEndPointReference(viewModelPropertyName, out propertyName, out parentViewModel);
+            ParseViewModelEndPointReference(viewModelPropertyName, out var propertyName, out var parentViewModel);
 
-            viewModelPropertyWatcher = new PropertyWatcher(parentViewModel, propertyName, NotifyPropertyChanged_PropertyChanged);
+            viewModelPropertyWatcher =
+                new PropertyWatcher(parentViewModel, propertyName, NotifyPropertyChanged_PropertyChanged);
 
             UpdateViewModel();
         }
 
         public override void Disconnect()
         {
-            if (viewModelPropertyWatcher != null)
+            if(viewModelPropertyWatcher != null)
             {
                 viewModelPropertyWatcher.Dispose();
                 viewModelPropertyWatcher = null;
@@ -114,18 +110,18 @@ namespace UnityWeld.Binding
         {
             UpdateViewModel();
 
-            var buffer = Buffer.AbstractMemberBindings;
-            GetComponentsInChildren<AbstractMemberBinding>(buffer);
-
             // Rebind all children.
-            foreach (var memberBinding in buffer)
+            using(var cache = gameObject.GetComponentsWithCache<AbstractMemberBinding>())
             {
-                if (memberBinding == this)
+                foreach(var memberBinding in cache.Components)
                 {
-                    continue;
-                }
+                    if(memberBinding == this)
+                    {
+                        continue;
+                    }
 
-                memberBinding.Init();
+                    memberBinding.Init();
+                }
             }
         }
     }

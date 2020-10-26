@@ -67,12 +67,12 @@ namespace UnityWeld.Binding.Internal
 
         protected virtual void Dispose(bool disposing)
         {
-            if (disposed)
+            if(disposed)
             {
                 return;
             }
 
-            if (disposing && unityEventBinder != null)
+            if(disposing && unityEventBinder != null)
             {
                 unityEventBinder.Dispose();
                 unityEventBinder = null;
@@ -92,28 +92,34 @@ namespace UnityWeld.Binding.Internal
             var type = component.GetType();
 
             var bindableEventsFromProperties = type
-                .GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                .Where(propertyInfo => propertyInfo.PropertyType.IsSubclassOf(typeof(UnityEventBase)))
-                .Where(propertyInfo => !propertyInfo.GetCustomAttributes(typeof(ObsoleteAttribute), true).Any())
-                .Select(propertyInfo => new BindableEvent()
-                {
-                    UnityEvent = (UnityEventBase)propertyInfo.GetValue(component, null),
-                    Name = propertyInfo.Name,
-                    DeclaringType = propertyInfo.DeclaringType,
-                    ComponentType = component.GetType()
-                });
+                                               .GetProperties(BindingFlags.Instance | BindingFlags.Public)
+                                               .Where(propertyInfo =>
+                                                          propertyInfo.PropertyType
+                                                                      .IsSubclassOf(typeof(UnityEventBase)))
+                                               .Where(propertyInfo =>
+                                                          !propertyInfo
+                                                           .GetCustomAttributes(typeof(ObsoleteAttribute), true).Any())
+                                               .Select(propertyInfo => new BindableEvent()
+                                               {
+                                                   UnityEvent = (UnityEventBase)propertyInfo.GetValue(component, null),
+                                                   Name = propertyInfo.Name,
+                                                   DeclaringType = propertyInfo.DeclaringType,
+                                                   ComponentType = component.GetType()
+                                               });
 
             var bindableEventsFromFields = type
-                .GetFields(BindingFlags.Instance | BindingFlags.Public)
-                .Where(fieldInfo => fieldInfo.FieldType.IsSubclassOf(typeof(UnityEventBase)))
-                .Where(fieldInfo => !fieldInfo.GetCustomAttributes(typeof(ObsoleteAttribute), true).Any())
-                .Select(fieldInfo => new BindableEvent
-                {
-                    UnityEvent = (UnityEventBase)fieldInfo.GetValue(component),
-                    Name = fieldInfo.Name,
-                    DeclaringType = fieldInfo.DeclaringType,
-                    ComponentType = type
-                });
+                                           .GetFields(BindingFlags.Instance | BindingFlags.Public)
+                                           .Where(fieldInfo => fieldInfo.FieldType.IsSubclassOf(typeof(UnityEventBase)))
+                                           .Where(fieldInfo =>
+                                                      !fieldInfo.GetCustomAttributes(typeof(ObsoleteAttribute), true)
+                                                                .Any())
+                                           .Select(fieldInfo => new BindableEvent
+                                           {
+                                               UnityEvent = (UnityEventBase)fieldInfo.GetValue(component),
+                                               Name = fieldInfo.Name,
+                                               DeclaringType = fieldInfo.DeclaringType,
+                                               ComponentType = type
+                                           });
 
             return bindableEventsFromFields.Concat(bindableEventsFromProperties);
         }
@@ -130,9 +136,10 @@ namespace UnityWeld.Binding.Internal
             var boundEvent = GetBindableEvents(component)
                 .FirstOrDefault(e => e.Name.Equals(boundEventName));
 
-            if (boundEvent == null)
+            if(boundEvent == null)
             {
-                throw new InvalidEventException(string.Format("Could not bind to event \"{0}\" on component \"{1}\".", boundEventName, componentType));
+                throw new InvalidEventException(
+                    $"Could not bind to event \"{boundEventName}\" on component \"{componentType}\".");
             }
 
             return boundEvent;
@@ -141,17 +148,16 @@ namespace UnityWeld.Binding.Internal
         /// <summary>
         /// Get all bindable Unity events on a particular game object.
         /// </summary>
-        public static BindableEvent[] GetBindableEvents(GameObject gameObject) //todo: Consider moving this to TypeResolver.
+        public static BindableEvent[]
+            GetBindableEvents(GameObject gameObject) //todo: Consider moving this to TypeResolver.
         {
-            Assert.IsNotNull(gameObject);
-
-            var buffer = Buffer.Components;
-            gameObject.GetComponents(buffer);
-
-            return buffer
-                .Where(component => component != null)
-                .SelectMany(GetBindableEvents)
-                .ToArray();
+            using(var cache = gameObject.GetComponentsWithCache<Component>())
+            {
+                return cache.Components
+                            .Where(component => component != null)
+                            .SelectMany(GetBindableEvents)
+                            .ToArray();
+            }
         }
     }
 }

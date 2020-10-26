@@ -210,10 +210,10 @@ namespace UnityWeld.Binding
         {
             if(_pool.TryGetValue(template.ViewModelTypeName, out var pool) && pool.Count > 0)
             {
-                return  pool.Dequeue();
+                return pool.Dequeue();
             }
 
-            return base.CloneTemplate(template);
+            return NewTemplate(template);
         }
 
         protected override void OnTemplateDestroy(Template template)
@@ -223,9 +223,6 @@ namespace UnityWeld.Binding
 
         private void PutTemplateToPool(Template template)
         {
-            template.gameObject.SetActive(false);
-            template.SetBindings(false);
-
             if(!_pool.TryGetValue(template.ViewModelTypeName, out var pool))
             {
                 _pool.Add(template.ViewModelTypeName, pool = new Queue<Template>());
@@ -234,19 +231,31 @@ namespace UnityWeld.Binding
             pool.Enqueue(template);
         }
 
+        private Template NewTemplate(Template prefab)
+        {
+            var template = Instantiate(prefab, Container);
+
+            template.gameObject.SetActive(false);
+            template.SetBindings(false);
+
+            using(var cache = template.gameObject.GetComponentsWithCache<CollectionBinding>())
+            {
+                foreach(var binding in cache.Components)
+                {
+                    binding.WarmUpTemplates();
+                }
+            }
+
+            return template;
+        }
+
         public void WarmUpTemplates()
         {
-            foreach(var template in AvailableTemplates.Values)
+            foreach(var templatePrefab in AvailableTemplates.Values)
             {
                 for(var i = 0; i < TemplateInitialPoolCount; i++)
                 {
-                    var clone = Instantiate(template, Container);
-                    PutTemplateToPool(clone);
-
-                    foreach(var collectionBinding in BindingHelpers.IterateComponents<CollectionBinding>(clone.gameObject))
-                    {
-                        collectionBinding.WarmUpTemplates();
-                    }
+                    PutTemplateToPool(NewTemplate(templatePrefab));
                 }
             }
         }

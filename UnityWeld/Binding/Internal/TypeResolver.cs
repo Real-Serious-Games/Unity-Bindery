@@ -19,7 +19,7 @@ namespace UnityWeld.Binding.Internal
     /// <summary>
     /// Contains ViewModel data
     /// </summary>
-    public class ViewModelProviderData 
+    public class ViewModelProviderData
     {
         public readonly object Model;
         public readonly string TypeName;
@@ -41,10 +41,11 @@ namespace UnityWeld.Binding.Internal
             typeof(BindingAttribute) //this should be the only ref to default binding attribute
         };
 
-        private static readonly IList<ViewModelProviderDelegate> ViewModelProviders = new List<ViewModelProviderDelegate>(2)
-        {
-            DefaultViewModelProvider
-        };
+        private static readonly IList<ViewModelProviderDelegate> ViewModelProviders =
+            new List<ViewModelProviderDelegate>(2)
+            {
+                DefaultViewModelProvider
+            };
 
         private static Type[] typesWithBindingAttribute;
 
@@ -58,7 +59,7 @@ namespace UnityWeld.Binding.Internal
         {
             get
             {
-                if (typesWithBindingAttribute == null)
+                if(typesWithBindingAttribute == null)
                 {
                     typesWithBindingAttribute = FindTypesMarkedByBindingAttribute();
                 }
@@ -73,7 +74,7 @@ namespace UnityWeld.Binding.Internal
         private static ViewModelProviderData DefaultViewModelProvider(Component component)
         {
             var provider = component as IViewModelProvider;
-            if (provider == null)
+            if(provider == null)
             {
                 return null;
             }
@@ -88,16 +89,16 @@ namespace UnityWeld.Binding.Internal
         {
             var typesFound = new List<Type>();
 
-            foreach (var type in GetAllTypes())
+            foreach(var type in GetAllTypes())
             {
                 try
                 {
-                    if (type.GetCustomAttributes(attributeType, false).Any())
+                    if(type.GetCustomAttributes(attributeType, false).Any())
                     {
                         typesFound.Add(type);
                     }
                 }
-                catch (Exception)
+                catch(Exception)
                 {
                     // Some types throw an exception when we try to use reflection on them.
                 }
@@ -113,7 +114,7 @@ namespace UnityWeld.Binding.Internal
         private static Type[] FindTypesMarkedByBindingAttribute()
         {
             var result = new List<Type>();
-            foreach (var attributeType in BindingAttributeTypes)
+            foreach(var attributeType in BindingAttributeTypes)
             {
                 result.AddRange(FindTypesMarkedByAttribute(attributeType));
             }
@@ -128,12 +129,12 @@ namespace UnityWeld.Binding.Internal
         {
             var assemblies =
                 AppDomain.CurrentDomain.GetAssemblies()
-                    // Automatically exclude the Unity assemblies, which throw exceptions when we try to access them.
-                    .Where(a =>
-                        !a.FullName.StartsWith("UnityEngine") &&
-                        !a.FullName.StartsWith("UnityEditor"));
+                         // Automatically exclude the Unity assemblies, which throw exceptions when we try to access them.
+                         .Where(a =>
+                                    !a.FullName.StartsWith("UnityEngine") &&
+                                    !a.FullName.StartsWith("UnityEditor"));
 
-            foreach (var assembly in assemblies)
+            foreach(var assembly in assemblies)
             {
                 Type[] types;
 
@@ -141,13 +142,13 @@ namespace UnityWeld.Binding.Internal
                 {
                     types = assembly.GetTypes();
                 }
-                catch (Exception)
+                catch(Exception)
                 {
                     // Ignore assemblies that can't be loaded.
                     continue;
                 }
 
-                foreach (var type in types)
+                foreach(var type in types)
                 {
                     yield return type;
                 }
@@ -162,9 +163,10 @@ namespace UnityWeld.Binding.Internal
             var type = TypesWithBindingAttribute
                 .FirstOrDefault(t => t.ToString() == viewModelTypeName);
 
-            if (type == null)
+            if(type == null)
             {
-                throw new ViewModelNotFoundException("Could not find the specified view model \"" + viewModelTypeName + "\"");
+                throw new ViewModelNotFoundException("Could not find the specified view model \"" + viewModelTypeName +
+                                                     "\"");
             }
 
             return type;
@@ -179,45 +181,47 @@ namespace UnityWeld.Binding.Internal
             var foundAtLeastOneBinding = false;
 
             var trans = memberBinding.transform;
-            while (trans != null)
+            while(trans != null)
             {
-                var buffer = Buffer.Behaviours;
-                trans.GetComponents<MonoBehaviour>(buffer);
-                foreach (var component in buffer)
+                using(var cache = trans.gameObject.GetComponentsWithCache<MonoBehaviour>(false))
                 {
-                    // Can't bind to self or null
-                    if (component == null || component == memberBinding)
+                    foreach(var component in cache.Components)
                     {
-                        continue;
-                    }
-
-                    // Case where a ViewModelBinding is used to bind a non-MonoBehaviour class.
-                    var viewModelData = component.GetViewModelData();
-                    if (viewModelData != null)
-                    {
-                        // Ignore view model bindings that haven't been set up yet.
-                        if (string.IsNullOrEmpty(viewModelData.TypeName))
+                        // Can't bind to self or null
+                        if(component == null || component == memberBinding)
+                        {
                             continue;
+                        }
 
-                        foundAtLeastOneBinding = true;
+                        // Case where a ViewModelBinding is used to bind a non-MonoBehaviour class.
+                        var viewModelData = component.GetViewModelData();
+                        if(viewModelData != null)
+                        {
+                            // Ignore view model bindings that haven't been set up yet.
+                            if(string.IsNullOrEmpty(viewModelData.TypeName))
+                                continue;
 
-                        yield return GetViewModelType(viewModelData.TypeName);
-                    }
-                    else if (component.GetType().HasBindingAttribute())
-                    {
-                        // Case where we are binding to an existing MonoBehaviour.
-                        foundAtLeastOneBinding = true;
+                            foundAtLeastOneBinding = true;
 
-                        yield return component.GetType();
+                            yield return GetViewModelType(viewModelData.TypeName);
+                        }
+                        else if(component.GetType().HasBindingAttribute())
+                        {
+                            // Case where we are binding to an existing MonoBehaviour.
+                            foundAtLeastOneBinding = true;
+
+                            yield return component.GetType();
+                        }
                     }
                 }
 
                 trans = trans.parent;
             }
 
-            if (!foundAtLeastOneBinding)
+            if(!foundAtLeastOneBinding)
             {
-                Debug.LogError("UI binding " + memberBinding.gameObject.name + " must be placed underneath at least one bindable component.", memberBinding);
+                Debug.LogError(
+                    $"UI binding {memberBinding.gameObject.name} must be placed underneath at least one bindable component.", memberBinding);
             }
         }
 
@@ -227,12 +231,12 @@ namespace UnityWeld.Binding.Internal
         public static BindableMember<PropertyInfo>[] FindBindableProperties(AbstractMemberBinding target)
         {
             return FindAvailableViewModelTypes(target)
-                .SelectMany(type => GetPublicProperties(type)
-                    .Select(p => new BindableMember<PropertyInfo>(p, type))
-                )
-                .Where(p => p.Member.HasBindingAttribute() // Filter out properties that don't have [Binding].
-                )
-                .ToArray();
+                   .SelectMany(type => GetPublicProperties(type)
+                                   .Select(p => new BindableMember<PropertyInfo>(p, type))
+                   )
+                   .Where(p => p.Member.HasBindingAttribute() // Filter out properties that don't have [Binding].
+                   )
+                   .ToArray();
         }
 
         /// <summary>
@@ -242,14 +246,14 @@ namespace UnityWeld.Binding.Internal
         /// </summary>
         private static IEnumerable<PropertyInfo> GetPublicProperties(Type type)
         {
-            if (!type.IsInterface)
+            if(!type.IsInterface)
             {
                 return type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
             }
 
-            return (new[] { type })
-                .Concat(type.GetInterfaces())
-                .SelectMany(i => i.GetProperties(BindingFlags.Public | BindingFlags.Instance));
+            return (new[] {type})
+                   .Concat(type.GetInterfaces())
+                   .SelectMany(i => i.GetProperties(BindingFlags.Public | BindingFlags.Instance));
         }
 
         /// <summary>
@@ -257,14 +261,14 @@ namespace UnityWeld.Binding.Internal
         /// </summary>
         private static IEnumerable<MethodInfo> GetPublicMethods(Type type)
         {
-            if (!type.IsInterface)
+            if(!type.IsInterface)
             {
                 return type.GetMethods(BindingFlags.Public | BindingFlags.Instance);
             }
 
-            return (new[] { type })
-                .Concat(type.GetInterfaces())
-                .SelectMany(i => i.GetMethods(BindingFlags.Public | BindingFlags.Instance));
+            return (new[] {type})
+                   .Concat(type.GetInterfaces())
+                   .SelectMany(i => i.GetMethods(BindingFlags.Public | BindingFlags.Instance));
         }
 
         /// <summary>
@@ -273,13 +277,15 @@ namespace UnityWeld.Binding.Internal
         public static BindableMember<MethodInfo>[] FindBindableMethods(EventBinding targetScript)
         {
             return FindAvailableViewModelTypes(targetScript)
-                .SelectMany(type => GetPublicMethods(type)
-                    .Select(m => new BindableMember<MethodInfo>(m, type))
-                )
-                .Where(m => m.Member.GetParameters().Length == 0)
-                .Where(m => m.Member.HasBindingAttribute() 
-                    && !m.MemberName.StartsWith("get_")) // Exclude property getters, since we aren't doing anything with the return value of the bound method anyway.
-                .ToArray();
+                   .SelectMany(type => GetPublicMethods(type)
+                                   .Select(m => new BindableMember<MethodInfo>(m, type))
+                   )
+                   .Where(m => m.Member.GetParameters().Length == 0)
+                   .Where(m => m.Member.HasBindingAttribute()
+                               && !m.MemberName
+                                    .StartsWith(
+                                        "get_")) // Exclude property getters, since we aren't doing anything with the return value of the bound method anyway.
+                   .ToArray();
         }
 
         /// <summary>
@@ -288,9 +294,9 @@ namespace UnityWeld.Binding.Internal
         public static BindableMember<PropertyInfo>[] FindBindableCollectionProperties(CollectionBinding target)
         {
             return FindBindableProperties(target)
-                .Where(p => typeof(IEnumerable).IsAssignableFrom(p.Member.PropertyType))
-                .Where(p => !typeof(string).IsAssignableFrom(p.Member.PropertyType))
-                .ToArray();
+                   .Where(p => typeof(IEnumerable).IsAssignableFrom(p.Member.PropertyType))
+                   .Where(p => !typeof(string).IsAssignableFrom(p.Member.PropertyType))
+                   .ToArray();
         }
 
         /// <summary>
@@ -301,7 +307,7 @@ namespace UnityWeld.Binding.Internal
         public static void RegisterCustomBindingAttribute<T>() where T : Attribute
         {
             var type = typeof(T);
-            if (BindingAttributeTypes.Contains(type))
+            if(BindingAttributeTypes.Contains(type))
             {
                 return;
             }
@@ -316,7 +322,7 @@ namespace UnityWeld.Binding.Internal
         /// <param name="provider"></param>
         public static void RegisterCustomViewModelProvider(ViewModelProviderDelegate provider)
         {
-            if (ViewModelProviders.Contains(provider))
+            if(ViewModelProviders.Contains(provider))
             {
                 return;
             }
@@ -330,9 +336,9 @@ namespace UnityWeld.Binding.Internal
         public static bool HasBindingAttribute(this MemberInfo type)
         {
             //for to avoid GC
-            for (var index = 0; index < BindingAttributeTypes.Count; index++)
+            for(var index = 0; index < BindingAttributeTypes.Count; index++)
             {
-                if (type.GetCustomAttributes(BindingAttributeTypes[index], false).Any())
+                if(type.GetCustomAttributes(BindingAttributeTypes[index], false).Any())
                 {
                     return true;
                 }
@@ -346,17 +352,17 @@ namespace UnityWeld.Binding.Internal
         /// </summary>
         public static ViewModelProviderData GetViewModelData(this Component component)
         {
-            if (component == null)
+            if(component == null)
             {
                 return null;
             }
 
             //for to avoid GC
-            for (var i = 0; i < ViewModelProviders.Count; i++)
+            for(var i = 0; i < ViewModelProviders.Count; i++)
             {
                 var data = ViewModelProviders[i](component);
 
-                if (data != null)
+                if(data != null)
                 {
                     return data;
                 }
@@ -369,12 +375,12 @@ namespace UnityWeld.Binding.Internal
 
         public static IAdapterInfo GetAdapter(string adapterId)
         {
-            if (string.IsNullOrEmpty(adapterId))
+            if(string.IsNullOrEmpty(adapterId))
             {
                 return null;
             }
 
-            if (!Adapters.TryGetValue(adapterId, out var adapter))
+            if(!Adapters.TryGetValue(adapterId, out var adapter))
             {
                 throw new Exception($"Adapter {adapterId} was not found!");
             }
@@ -384,7 +390,7 @@ namespace UnityWeld.Binding.Internal
 
         public static bool TryGetAdapter(string adapterId, out IAdapterInfo adapterInfo)
         {
-            if (string.IsNullOrEmpty(adapterId))
+            if(string.IsNullOrEmpty(adapterId))
             {
                 adapterInfo = null;
                 return false;
@@ -397,15 +403,15 @@ namespace UnityWeld.Binding.Internal
         {
             return Adapters.Values.Where(o => predicate(o)).Select(o => o.Id).ToArray();
         }
-    
+
         public static void RegisterAdapter(IAdapterInfo adapter)
         {
-            if (adapter == null)
+            if(adapter == null)
             {
                 throw new ArgumentNullException(nameof(adapter));
             }
 
-            if (Adapters.ContainsKey(adapter.Id))
+            if(Adapters.ContainsKey(adapter.Id))
             {
                 return;
             }

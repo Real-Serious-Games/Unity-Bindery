@@ -57,15 +57,18 @@ namespace UnityWeld.Binding
 
         public void SetBindings(bool isInit)
         {
-            foreach (var binding in BindingHelpers.IterateComponents<AbstractMemberBinding>(gameObject))
+            using(var cache = gameObject.GetComponentsWithCache<AbstractMemberBinding>())
             {
-                if (isInit)
+                foreach (var binding in cache.Components)
                 {
-                    binding.Init();
-                }
-                else
-                {
-                    binding.ResetBinding();
+                    if (isInit)
+                    {
+                        binding.Init();
+                    }
+                    else
+                    {
+                        binding.ResetBinding();
+                    }
                 }
             }
 

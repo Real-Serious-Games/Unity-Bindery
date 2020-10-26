@@ -11,7 +11,7 @@
         <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
         <SignAssembly>false</SignAssembly>
         <LangVersion>latest</LangVersion>
-        <DebugType>full</DebugType>
+        <DebugType>portable</DebugType>
         <DebugSymbols>true</DebugSymbols>
     </PropertyGroup>
     <ItemGroup>
