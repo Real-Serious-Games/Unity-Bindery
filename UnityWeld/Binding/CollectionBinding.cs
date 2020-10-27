@@ -228,6 +228,7 @@ namespace UnityWeld.Binding
                 _pool.Add(template.ViewModelTypeName, pool = new Queue<Template>());
             }
 
+            template.gameObject.SetActive(false);
             pool.Enqueue(template);
         }
 
