@@ -77,12 +77,18 @@ namespace UnityWeld.Binding
 
             // Get value from view model.
             var viewModelPropertyValue = viewModelProperty.GetValue(ViewModel, null);
-            if (viewModelPropertyValue == null)
+            if (viewModelPropertyValue != null)
             {
-                throw new PropertyNullException($"TemplateBinding cannot bind to null property in view: {ViewModelPropertyName}.");
+                //some times property for binding can be null ( for example we must destroy our template ) and this case not wrong 
+                //throw new PropertyNullException($"TemplateBinding cannot bind to null property in view: {ViewModelPropertyName}.");
+                InstantiateTemplate(viewModelPropertyValue);
             }
+        }
 
-            InstantiateTemplate(viewModelPropertyValue);
+        protected override void OnTemplateDestroy(Template template)
+        {
+            base.OnTemplateDestroy(template);
+            Destroy(template.gameObject);
         }
     }
 }
