@@ -11,8 +11,11 @@ namespace UnityWeld_Editor
     /// <summary>
     /// A base editor for Unity-Weld bindings.
     /// </summary>
-    public class BaseBindingEditor : Editor
+    public abstract class BaseBindingEditor : Editor
     {
+        protected FontStyle DefaultFontStyle;
+        private SerializedProperty _autoConnectionProperty;
+        
         /// <summary>
         /// Sets the specified value and sets dirty to true if it doesn't match the old value.
         /// </summary>
@@ -68,6 +71,47 @@ namespace UnityWeld_Editor
             }
         }
 
+        protected abstract void OnEnabled();
+        protected abstract void OnInspector();
+
+        private void OnEnable()
+        {
+            _autoConnectionProperty = serializedObject.FindProperty("_isAutoConnection");
+            OnEnabled();
+        }
+
+        public sealed override void OnInspectorGUI()
+        {
+            serializedObject.Update();
+
+            if (CannotModifyInPlayMode())
+            {
+                GUI.enabled = false;
+            }
+
+            DefaultFontStyle = EditorStyles.label.fontStyle;
+
+            if (_autoConnectionProperty != null)
+            {
+                EditorGUILayout.PropertyField(_autoConnectionProperty);
+            }
+
+            OnInspector();
+
+            serializedObject.ApplyModifiedProperties();
+
+            EditorStyles.label.fontStyle = DefaultFontStyle;
+        }
+
+        protected void ShowAutoConnection(bool currentValue, Action<bool> valueSetter)
+        {
+            var newValue = EditorGUILayout.Toggle("Auto Connection", currentValue);
+            if (newValue != currentValue)
+            {
+                valueSetter(newValue);
+            }
+        }
+        
         /// <summary>
         /// Display a popup menu for selecting a property from a view-model.
         /// </summary>
@@ -260,23 +304,22 @@ namespace UnityWeld_Editor
         /// Returns whether or not we should show an adapter options selector for the specified 
         /// adapter type and finds the type for the specified type name.
         /// </summary>
-        protected static bool ShouldShowAdapterOptions(string adapterTypeName, out Type adapterType)
+        protected static bool ShouldShowAdapterOptions(string adapterId, out Type adapterType)
         {
+            adapterType = null;
+            
             // Don't show selector until an adapter has been selected.
-            if (string.IsNullOrEmpty(adapterTypeName))
+            if (string.IsNullOrEmpty(adapterId))
             {
-                adapterType = null;
+                return false;
+            }
+            
+            if (!TypeResolver.TryGetAdapter(adapterId, out var adapterInfo))
+            {
                 return false;
             }
 
-            var adapterAttribute = FindAdapterAttribute(adapterTypeName);
-            if (adapterAttribute == null)
-            {
-                adapterType = null;
-                return false;
-            }
-
-            adapterType = adapterAttribute.OptionsType;
+            adapterType = adapterInfo.OptionsType;
 
             // Don't show selector unless the current adapter has its own overridden
             // adapter options type.
@@ -331,40 +374,29 @@ namespace UnityWeld_Editor
         }
 
         /// <summary>
-        /// Find the adapter attribute for a named adapter type.
+        /// Pass a type through an adapter and get the result.
         /// </summary>
-        protected static AdapterAttribute FindAdapterAttribute(string adapterName)
+        protected static Type AdaptTypeBackward(Type inputType, string adapterId)
         {
-            if (!string.IsNullOrEmpty(adapterName))
+            if (!TypeResolver.TryGetAdapter(adapterId, out var adapterInfo))
             {
-                var adapterType = TypeResolver.FindAdapterType(adapterName);
-                if (adapterType != null)
-                {
-                    return TypeResolver.FindAdapterAttribute(adapterType);
-                }
+                return inputType;
             }
 
-            return null;
+            return adapterInfo.InType;
         }
 
         /// <summary>
         /// Pass a type through an adapter and get the result.
         /// </summary>
-        protected static Type AdaptTypeBackward(Type inputType, string adapterName)
+        protected static Type AdaptTypeForward(Type inputType, string adapterId)
         {
-            var adapterAttribute = FindAdapterAttribute(adapterName);
+            if (!TypeResolver.TryGetAdapter(adapterId, out var adapterInfo))
+            {
+                return inputType;
+            }
 
-            return adapterAttribute != null ? adapterAttribute.InputType : inputType;
-        }
-
-        /// <summary>
-        /// Pass a type through an adapter and get the result.
-        /// </summary>
-        protected static Type AdaptTypeForward(Type inputType, string adapterName)
-        {
-            var adapterAttribute = FindAdapterAttribute(adapterName);
-
-            return adapterAttribute != null ? adapterAttribute.OutputType : inputType;
+            return adapterInfo.OutType;
         }
 
         /// <summary>
@@ -374,17 +406,5 @@ namespace UnityWeld_Editor
         {
             return string.Concat(evt.ComponentType.ToString(), ".", evt.Name);
         }
-
-        /// <summary>
-        /// Returns an array of all the names of adapter types that match the 
-        /// provided prediate function.
-        /// </summary>
-        protected static string[] GetAdapterTypeNames(Func<Type, bool> adapterSelectionPredicate)
-        {
-            return TypeResolver.TypesWithAdapterAttribute
-                .Where(adapterSelectionPredicate)
-                .Select(type => type.ToString())
-                .ToArray();
-        }
-    }
+   }
 }

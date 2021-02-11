@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 using UnityWeld.Binding.Internal;
 
@@ -45,7 +46,7 @@ namespace UnityWeld.Binding
         /// Type name of the adapter for converting a selection value in the 
         /// view model to what the UI expects (which should be a string).
         /// </summary>
-        public string selectionViewModelToUIAdapter;
+        [FormerlySerializedAs("selectionViewModelToUIAdapter")] public string selectionViewModelToUIAdapterId;
 
         /// <summary>
         /// Type name of the adapter for converting a selection value in the 
@@ -57,7 +58,7 @@ namespace UnityWeld.Binding
         /// Adapter for converting the options list in the view model 
         /// to the correct format to display in the UI.
         /// </summary>
-        public string optionsAdapter;
+        [FormerlySerializedAs("optionsAdapter")] public string optionsAdapterId;
 
         /// <summary>
         /// Cached drop down component.
@@ -78,7 +79,7 @@ namespace UnityWeld.Binding
                 new PropertyEndPoint(
                     this,
                     "SelectedOption",
-                    CreateAdapter(selectionViewModelToUIAdapter),
+                    TypeResolver.GetAdapter(selectionViewModelToUIAdapterId),
                     null,
                     "view",
                     this
@@ -114,7 +115,7 @@ namespace UnityWeld.Binding
                 new PropertyEndPoint(
                     this,
                     "Options",
-                    CreateAdapter(optionsAdapter),
+                    TypeResolver.GetAdapter(selectionViewModelToUIAdapterId),
                     null,
                     "view",
                     this

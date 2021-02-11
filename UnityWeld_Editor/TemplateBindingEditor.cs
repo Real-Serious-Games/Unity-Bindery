@@ -11,26 +11,21 @@ namespace UnityWeld_Editor
         private TemplateBinding targetScript;
 
         private bool viewModelPrefabModified;
-        private bool templatesRootPrefabModified;
+        private SerializedProperty _templatesProperty;
 
-        private void OnEnable()
+        protected override  void OnEnabled()
         {
             targetScript = (TemplateBinding)target;
+            _templatesProperty = serializedObject.FindProperty("_templates");
         }
 
-        public override void OnInspectorGUI()
+        protected override void OnInspector()
         {
-            if (CannotModifyInPlayMode())
-            {
-                GUI.enabled = false;
-            }
-
             UpdatePrefabModifiedProperties();
 
-            var defaultLabelStyle = EditorStyles.label.fontStyle;
             EditorStyles.label.fontStyle = viewModelPrefabModified 
                 ? FontStyle.Bold 
-                : defaultLabelStyle;
+                : DefaultFontStyle;
 
             ShowViewModelPropertyMenu(
                 new GUIContent(
@@ -43,26 +38,7 @@ namespace UnityWeld_Editor
                 property => true
             );
 
-            EditorStyles.label.fontStyle = templatesRootPrefabModified 
-                ? FontStyle.Bold 
-                : defaultLabelStyle;
-
-            UpdateProperty(
-                updatedValue => targetScript.TemplatesRoot = updatedValue,
-                targetScript.TemplatesRoot,
-                (GameObject)EditorGUILayout.ObjectField(
-                    new GUIContent(
-                        "Templates root object", 
-                        "Parent object to the objects we want to use as templates."
-                    ),
-                    targetScript.TemplatesRoot, 
-                    typeof(GameObject), 
-                    true
-                ),
-                "Set template binding root object"
-            );
-
-            EditorStyles.label.fontStyle = defaultLabelStyle;
+            EditorGUILayout.PropertyField(_templatesProperty, true);
         }
 
         /// <summary>
@@ -81,10 +57,6 @@ namespace UnityWeld_Editor
                 {
                     case "viewModelPropertyName":
                         viewModelPrefabModified = property.prefabOverride;
-                        break;
-
-                    case "templatesRoot":
-                        templatesRootPrefabModified = property.prefabOverride;
                         break;
                 }
             }

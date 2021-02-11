@@ -1,5 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Linq;
 
 
@@ -8,12 +10,12 @@ namespace UnityWeld.Binding
     /// <summary>
     /// An observable list that is bound to source list.
     /// </summary>
-    public class BoundObservableList<DestT, SourceT> : ObservableList<DestT>, IDisposable
+    public class BoundObservableList<DestT, SourceT> : ObservableCollection<DestT>, IDisposable
     {
         /// <summary>
         /// The source list.
         /// </summary>
-        private readonly ObservableList<SourceT> source;
+        private readonly ObservableCollection<SourceT> source;
 
         /// <summary>
         /// Function that maps source items to dest items.
@@ -43,7 +45,7 @@ namespace UnityWeld.Binding
 
         private bool disposed;
 
-        public BoundObservableList(ObservableList<SourceT> source, Func<SourceT, DestT> itemMap) :
+        public BoundObservableList(ObservableCollection<SourceT> source, Func<SourceT, DestT> itemMap) :
             base(source.Select(itemMap))
         {
             this.itemMap = itemMap;
@@ -55,7 +57,7 @@ namespace UnityWeld.Binding
             cache = new List<DestT>(this);
         }
 
-        public BoundObservableList(ObservableList<SourceT> source, Func<SourceT, DestT> itemMap, Action<DestT> added, Action<DestT> removed) :
+        public BoundObservableList(ObservableCollection<SourceT> source, Func<SourceT, DestT> itemMap, Action<DestT> added, Action<DestT> removed) :
             base(source.Select(itemMap))
         {
             if (added == null)
@@ -82,7 +84,7 @@ namespace UnityWeld.Binding
             cache = new List<DestT>(this);
         }
 
-        public BoundObservableList(ObservableList<SourceT> source, Func<SourceT, DestT> itemMap, Action<DestT> added, Action<DestT> removed, Action changed) :
+        public BoundObservableList(ObservableCollection<SourceT> source, Func<SourceT, DestT> itemMap, Action<DestT> added, Action<DestT> removed, Action changed) :
             base(source.Select(itemMap))
         {
             if (added == null)

@@ -40,7 +40,7 @@ namespace UnityWeld.Binding
         /// <summary>
         /// Property on the view to update when value changes.
         /// </summary>
-        public string ViewPropertName
+        public string ViewPropertyName
         {
             get { return viewPropertyName; }
             set { viewPropertyName = value; }
@@ -53,14 +53,14 @@ namespace UnityWeld.Binding
         /// Name of the type of the adapter we're using to convert values from the 
         /// view model to the view. Can be empty for no adapter.
         /// </summary>
-        public string ViewAdapterTypeName
+        public string ViewAdapterId
         {
-            get { return viewAdapterTypeName; }
-            set { viewAdapterTypeName = value; }
+            get { return viewAdapterId; }
+            set { viewAdapterId = value; }
         }
 
-        [SerializeField]
-        private string viewAdapterTypeName;
+        [FormerlySerializedAs("viewAdapterTypeName")] [SerializeField]
+        private string viewAdapterId;
 
         /// <summary>
         /// Options for the adapter from the view model to the view.
@@ -78,14 +78,14 @@ namespace UnityWeld.Binding
         /// Name of the type of the adapter we're using to conver values from the
         /// view back to the view model. Can be empty for no adapter.
         /// </summary>
-        public string ViewModelAdapterTypeName
+        public string ViewModelAdapterId
         {
-            get { return viewModelAdapterTypeName; }
-            set { viewModelAdapterTypeName = value; }
+            get { return viewModelAdapterId; }
+            set { viewModelAdapterId = value; }
         }
 
-        [SerializeField]
-        private string viewModelAdapterTypeName;
+        [FormerlySerializedAs("viewModelAdapterTypeName")] [SerializeField]
+        private string viewModelAdapterId;
 
         /// <summary>
         /// Options for the adapter from the view to the view model.
@@ -153,7 +153,7 @@ namespace UnityWeld.Binding
 
             var viewModelEndPoint = MakeViewModelEndPoint(
                 viewModelPropertyName, 
-                viewModelAdapterTypeName, 
+                viewModelAdapterId, 
                 viewModelAdapterOptions
             );
 
@@ -165,7 +165,7 @@ namespace UnityWeld.Binding
                 new PropertyEndPoint(
                     view,
                     propertyName,
-                    CreateAdapter(viewAdapterTypeName),
+                    TypeResolver.GetAdapter(viewAdapterId),
                     viewAdapterOptions,
                     "view",
                     this

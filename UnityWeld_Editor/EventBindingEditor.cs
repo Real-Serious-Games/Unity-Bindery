@@ -16,24 +16,18 @@ namespace UnityWeld_Editor
         private bool viewEventPrefabModified;
         private bool viewModelMethodPrefabModified;
 
-        private void OnEnable()
+        protected override void OnEnabled()
         {
             targetScript = (EventBinding)target;
         }
 
-        public override void OnInspectorGUI()
+        protected override void OnInspector()
         {
-            if (CannotModifyInPlayMode())
-            {
-                GUI.enabled = false;
-            }
-
             UpdatePrefabModifiedProperties();
 
-            var defaultLabelStyle = EditorStyles.label.fontStyle;
             EditorStyles.label.fontStyle = viewEventPrefabModified 
                 ? FontStyle.Bold 
-                : defaultLabelStyle;
+                : DefaultFontStyle;
 
             ShowEventMenu(
                 UnityEventWatcher.GetBindableEvents(targetScript.gameObject)
@@ -45,11 +39,9 @@ namespace UnityWeld_Editor
 
             EditorStyles.label.fontStyle = viewModelMethodPrefabModified 
                 ? FontStyle.Bold 
-                : defaultLabelStyle;
+                : DefaultFontStyle;
 
             ShowMethodMenu(targetScript, TypeResolver.FindBindableMethods(targetScript));
-
-            EditorStyles.label.fontStyle = defaultLabelStyle;
         }
 
         /// <summary>

@@ -21,17 +21,12 @@ namespace UnityWeld_Editor
         private bool viewModelPropertyPrefabModified;
         private bool viewPropertyPrefabModified;
 
-        private void OnEnable()
+        protected override void OnEnabled()
         {
             // Initialise reference to target script
             targetScript = (AnimatorParameterBinding)target;
 
-            Type adapterType;
-
-            viewAdapterOptionsFade = new AnimBool(
-                ShouldShowAdapterOptions(targetScript.ViewAdapterTypeName, out adapterType)
-            );
-
+            viewAdapterOptionsFade = new AnimBool(ShouldShowAdapterOptions(targetScript.ViewAdapterId, out _));
             viewAdapterOptionsFade.valueChanged.AddListener(Repaint);
         }
 
@@ -40,17 +35,11 @@ namespace UnityWeld_Editor
             viewAdapterOptionsFade.valueChanged.RemoveListener(Repaint);
         }
 
-        public override void OnInspectorGUI()
+        protected override void OnInspector()
         {
-            if(CannotModifyInPlayMode())
-            {
-                return;
-            }
-
             UpdatePrefabModifiedProperties();
 
-            var defaultLabelStyle = EditorStyles.label.fontStyle;
-            EditorStyles.label.fontStyle = viewPropertyPrefabModified ? FontStyle.Bold : defaultLabelStyle;
+            EditorStyles.label.fontStyle = viewPropertyPrefabModified ? FontStyle.Bold : DefaultFontStyle;
 
             var animatorParameters = GetAnimatorParameters();
 
@@ -60,7 +49,6 @@ namespace UnityWeld_Editor
                 return;
             }
 
-            Type viewPropertyType;
             ShowAnimatorParametersMenu(
                 new GUIContent("View property", "Property on the view to bind to"),
                 updatedValue =>
@@ -70,7 +58,7 @@ namespace UnityWeld_Editor
                 },
                 new AnimatorParameterTypeAndName(targetScript.AnimatorParameterName, targetScript.AnimatorParameterType),
                 animatorParameters,
-                out viewPropertyType
+                out var viewPropertyType
                 );
 
             // Don't let the user set anything else until they've chosen a view property.
@@ -80,39 +68,36 @@ namespace UnityWeld_Editor
                 GUI.enabled = false;
             }
 
-            var viewAdapterTypeNames = GetAdapterTypeNames(
-                type => viewPropertyType == null ||
-                    TypeResolver.FindAdapterAttribute(type).OutputType == viewPropertyType
-            );
+            var viewAdapterTypeNames = TypeResolver.GetAdapterIds(
+                adapterInfo => viewPropertyType == null || adapterInfo.OutType == viewPropertyType);
 
-            EditorStyles.label.fontStyle = viewAdapterPrefabModified ? FontStyle.Bold : defaultLabelStyle;
+            EditorStyles.label.fontStyle = viewAdapterPrefabModified ? FontStyle.Bold : DefaultFontStyle;
 
             ShowAdapterMenu(
                 new GUIContent("View adapter", "Adapter that converts values sent from the view-model to the view."),
                 viewAdapterTypeNames,
-                targetScript.ViewAdapterTypeName,
+                targetScript.ViewAdapterId,
                 newValue =>
                 {
                     // Get rid of old adapter options if we changed the type of the adapter.
-                    if (newValue != targetScript.ViewAdapterTypeName)
+                    if (newValue != targetScript.ViewAdapterId)
                     {
                         Undo.RecordObject(targetScript, "Set view adapter options");
                         targetScript.ViewAdapterOptions = null;
                     }
 
                     UpdateProperty(
-                        updatedValue => targetScript.ViewAdapterTypeName = updatedValue,
-                        targetScript.ViewAdapterTypeName,
+                        updatedValue => targetScript.ViewAdapterId = updatedValue,
+                        targetScript.ViewAdapterId,
                         newValue,
                         "Set view adapter"
                     );
                 }
             );
 
-            Type adapterType;
-            viewAdapterOptionsFade.target = ShouldShowAdapterOptions(targetScript.ViewAdapterTypeName, out adapterType);
+            viewAdapterOptionsFade.target = ShouldShowAdapterOptions(targetScript.ViewAdapterId, out var adapterType);
 
-            EditorStyles.label.fontStyle = viewAdapterOptionsPrefabModified ? FontStyle.Bold : defaultLabelStyle;
+            EditorStyles.label.fontStyle = viewAdapterOptionsPrefabModified ? FontStyle.Bold : DefaultFontStyle;
 
             ShowAdapterOptionsMenu(
                 "View adapter options",
@@ -124,9 +109,9 @@ namespace UnityWeld_Editor
 
             EditorGUILayout.Space();
 
-            EditorStyles.label.fontStyle = viewModelPropertyPrefabModified ? FontStyle.Bold : defaultLabelStyle;
+            EditorStyles.label.fontStyle = viewModelPropertyPrefabModified ? FontStyle.Bold : DefaultFontStyle;
 
-            var adaptedViewPropertyType = AdaptTypeBackward(viewPropertyType, targetScript.ViewAdapterTypeName);
+            var adaptedViewPropertyType = AdaptTypeBackward(viewPropertyType, targetScript.ViewAdapterId);
             ShowViewModelPropertyMenu(
                 new GUIContent("View-model property", "Property on the view-model to bind to."),
                 TypeResolver.FindBindableProperties(targetScript),
@@ -136,8 +121,6 @@ namespace UnityWeld_Editor
             );
 
             GUI.enabled = guiPreviouslyEnabled;
-
-            EditorStyles.label.fontStyle = defaultLabelStyle;
 
             EditorGUILayout.Space();
 

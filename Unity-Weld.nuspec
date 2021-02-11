@@ -16,8 +16,6 @@
     <tags>C# Unity Unity3D UI MVVM data binding databinding</tags>
   </metadata>
   <files>
-    <file src="UnityWeld/bin/Release/net35/UnityWeld.dll" target="lib\net35"/>
-    <file src="UnityWeld_Editor/bin/Release/net35/UnityWeld_Editor.dll" target="lib\net35"/>
     <file src="UnityWeld/bin/Release/netstandard2.0/UnityWeld.dll" target="lib\netstandard2.0"/>
     <file src="UnityWeld_Editor/bin/Release/netstandard2.0/UnityWeld_Editor.dll" target="lib\netstandard2.0"/>
   </files>

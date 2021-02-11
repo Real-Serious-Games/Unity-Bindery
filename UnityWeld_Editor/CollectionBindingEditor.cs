@@ -8,52 +8,38 @@ namespace UnityWeld_Editor
     [CustomEditor(typeof(CollectionBinding))]
     class CollectionBindingEditor : BaseBindingEditor
     {
-        private CollectionBinding targetScript;
+        private CollectionBinding _targetScript;
+        private SerializedProperty _templateInitialPoolCountProperty;
+        private SerializedProperty _itemsContainerProperty;
+        private SerializedProperty _templatesProperty;
+        
+        private bool _viewModelPrefabModified;
 
-        private bool viewModelPrefabModified;
-        private bool templatesRootPrefabModified;
-
-        private void OnEnable()
+        protected override void OnEnabled()
         {
             // Initialise everything
-            targetScript = (CollectionBinding)target;
+            _targetScript = (CollectionBinding)target;
+            _templateInitialPoolCountProperty = serializedObject.FindProperty("_templateInitialPoolCount");
+            _itemsContainerProperty = serializedObject.FindProperty("_itemsContainer");
+            _templatesProperty = serializedObject.FindProperty("_templates");
         }
 
-        public override void OnInspectorGUI()
+        protected override void OnInspector()
         {
-            if (CannotModifyInPlayMode())
-            {
-                GUI.enabled = false;
-            }
-
             UpdatePrefabModifiedProperties();
 
-            var defaultLabelStyle = EditorStyles.label.fontStyle;
-            EditorStyles.label.fontStyle = viewModelPrefabModified ? FontStyle.Bold : defaultLabelStyle;
-
+            EditorGUILayout.PropertyField(_templateInitialPoolCountProperty);
+            EditorGUILayout.PropertyField(_itemsContainerProperty);
+            EditorGUILayout.PropertyField(_templatesProperty, true);
+            
+            EditorStyles.label.fontStyle = _viewModelPrefabModified ? FontStyle.Bold : DefaultFontStyle;
             ShowViewModelPropertyMenu(
                 new GUIContent("View-model property", "Property on the view-model to bind to."),
-                TypeResolver.FindBindableCollectionProperties(targetScript),
-                updatedValue => targetScript.ViewModelPropertyName = updatedValue,
-                targetScript.ViewModelPropertyName,
+                TypeResolver.FindBindableCollectionProperties(_targetScript),
+                updatedValue => _targetScript.ViewModelPropertyName = updatedValue,
+                _targetScript.ViewModelPropertyName,
                 property => true
             );
-
-            EditorStyles.label.fontStyle = templatesRootPrefabModified ? FontStyle.Bold : defaultLabelStyle;
-
-            UpdateProperty(
-                updatedValue => targetScript.TemplatesRoot = updatedValue,
-                targetScript.TemplatesRoot,
-                (GameObject)EditorGUILayout.ObjectField(
-                    new GUIContent("Collection templates", "Parent object for all templates to copy and bind to items in the collection."), 
-                    targetScript.TemplatesRoot, 
-                    typeof(GameObject), 
-                    true
-                ),
-                "Set collection templates root"
-            );
-
-            EditorStyles.label.fontStyle = defaultLabelStyle;
         }
 
         /// <summary>
@@ -70,11 +56,7 @@ namespace UnityWeld_Editor
                 switch (property.name)
                 {
                     case "viewModelPropertyName":
-                        viewModelPrefabModified = property.prefabOverride;
-                        break;
-
-                    case "templatesRoot":
-                        templatesRootPrefabModified = property.prefabOverride;
+                        _viewModelPrefabModified = property.prefabOverride;
                         break;
                 }
             }
